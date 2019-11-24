@@ -47,6 +47,8 @@ func main() {
 	http.HandleFunc("/setAlias", setAlias)
 	http.HandleFunc("/addApp", addApp)
 	http.HandleFunc("/addNewReviewsAlert", addNewReviewsAlert)
+	http.HandleFunc("/removeNewReviewsAlert", removeNewReviewsAlert)
+	http.HandleFunc("/listNewReviewsAlerts", listNewReviewsAlerts)
 	go getAllReviews()
 	http.ListenAndServe(":8080", nil)
 }
@@ -62,6 +64,37 @@ func initService() (*androidpublisher.Service, error) {
 	return service, nil
 }
 
+func removeNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "{\"text\":\"\\n")
+	defer fmt.Fprint(w, "\"}")
+
+	args, errMessage := getArgs(r)
+	if args == nil {
+		fmt.Fprintf(w, "%s", errMessage)
+		return
+	}
+	if len(args) != 2 {
+		fmt.Fprintf(w, "Wrong use: %s unique_name.", args[0])
+		return
+	}
+	if _, ok := newReviewsAlerts[args[1]]; !ok {
+		fmt.Fprintf(w, "There no alert named %s.", args[1])
+		return
+	}
+
+	delete(newReviewsAlerts, args[1])
+	fmt.Fprintf(w, "Alert %s removed.", args[1])
+}
+
+func listNewReviewsAlerts(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "{\"text\":\"\\n")
+	defer fmt.Fprint(w, "\"}")
+
+	for k, v := range newReviewsAlerts {
+		fmt.Fprintf(w, "Alert \\\"%s\\\": From package %s every %v seconds at most on webhook %s\\n", k, v.packageName, v.frequency, v.webhook)
+	}
+}
+
 func addNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "{\"text\":\"\\n")
 	args, errMessage := getArgs(r)
@@ -71,7 +104,6 @@ func addNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(args) != 5 {
 		fmt.Fprintf(w, "Wrong use: addNewReviewsAlert unique_name webhook packageName minimum_frequency_in_seconds\"}")
-		fmt.Print(args, len(args))
 		return
 	}
 	if _, ok := newReviewsAlerts[args[1]]; ok {

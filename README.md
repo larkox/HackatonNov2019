@@ -14,6 +14,8 @@ With the current version you can:
 - List your registered apps on the application using an outgoing webhook to "/listApps" (Usage: trigger)
 - List your most recent reviews from all your apps using an outgoing webhook to "/list" (Usage: trigger)
 - Configure an alert on a incoming webhook to tell you when there are new reivews using an outgoing webhook to /addNewReviewsAlert (Usage: trigger name webhook package_name frequency_in_seconds)
+  - List these alerts using an outoing webhook to "/listNewReviewsAlerts" (Usage: trigger)
+  - Remove these alerts using an outgoing webhook to "/removeNewReviewsAlert" (Usage: trigger alertName)
 
 The application on background is fetching periodically the latest reviews. This is used as cache, and also on later versions it will be used for alerts.
 
