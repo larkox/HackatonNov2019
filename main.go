@@ -168,6 +168,7 @@ func serveList(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "{\"text\":\"\\n")
 	fmt.Fprintf(w, "Here are the %d latest reviews from each app:\\n", maxReviewsServed)
 	reviewsMutex.Lock()
+	defer reviewsMutex.Unlock()
 	for key, reviewList := range localReviews {
 		fmt.Fprintf(w, "Package Id: %s\\n", key)
 		for i, review := range reviewList {
@@ -177,6 +178,5 @@ func serveList(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, formatReview(review))
 		}
 	}
-	reviewsMutex.Unlock()
 	fmt.Fprintf(w, "\"}")
 }

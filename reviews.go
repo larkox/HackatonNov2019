@@ -10,17 +10,8 @@ import (
 
 // Newer reviews will always be on the lower ids of the slice
 var localReviews = make(map[string][]*androidpublisher.Review)
-var reviewsMutex sync.Mutex
 var newReviewsCounts = make(map[string]int)
-
-var stars = [...]string{
-	"",
-	":star:",
-	":star::star:",
-	":star::star::star:",
-	":star::star::star::star:",
-	":star::star::star::star::star:",
-}
+var reviewsMutex sync.Mutex
 
 type reviewsGetResponse = struct {
 	packageName string
@@ -94,6 +85,15 @@ func getReviews(packageName string, listSyncChannel chan reviewsGetResponse) {
 }
 
 func formatReview(review *androidpublisher.Review) string {
+	stars := [...]string{
+		"",
+		":star:",
+		":star::star:",
+		":star::star::star:",
+		":star::star::star::star:",
+		":star::star::star::star::star:",
+	}
+
 	lastModified := review.Comments[0].UserComment.LastModified
 	return fmt.Sprintf("%s commented (%s):\\n%s\\non %s\\nReviewId:%s\\n",
 		review.AuthorName,
@@ -105,6 +105,7 @@ func formatReview(review *androidpublisher.Review) string {
 
 func mergeReviewLists(localList []*androidpublisher.Review, remoteList []*androidpublisher.Review, packageName string) {
 	reviewsMutex.Lock()
+	defer reviewsMutex.Unlock()
 	// Remove already cached elements
 	for i := range remoteList {
 		if remoteList[i].Comments[0].UserComment.LastModified.Seconds <= localList[0].Comments[0].UserComment.LastModified.Seconds {
@@ -127,5 +128,4 @@ func mergeReviewLists(localList []*androidpublisher.Review, remoteList []*androi
 
 	// Join lists
 	localList = append(remoteList, localList...)
-	reviewsMutex.Unlock()
 }
