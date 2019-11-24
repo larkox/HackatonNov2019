@@ -13,7 +13,7 @@ With the current version you can:
 - Set aliases for your apps using an outgoing webhook to "/setAlias" (Usage: trigger alias packageId)
 - List your registered apps on the application using an outgoing webhook to "/listApps" (Usage: trigger)
 - List your most recent reviews from all your apps using an outgoing webhook to "/list" (Usage: trigger)
-- Configure an alert on a incoming webhook to tell you when there are new reivews using an outgoing webhook to /addNewReviewsAlert (Usage: trigger name webhook package_name frequency_in_seconds)
+- Configure an alert on a incoming webhook to tell you when there are new reivews using an outgoing webhook to /addNewReviewsAlert (Usage: trigger name webhook packageId_or_alias frequency_in_seconds)
   - List these alerts using an outoing webhook to "/listNewReviewsAlerts" (Usage: trigger)
   - Remove these alerts using an outgoing webhook to "/removeNewReviewsAlert" (Usage: trigger alertName)
 

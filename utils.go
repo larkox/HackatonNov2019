@@ -30,6 +30,14 @@ func getArgs(r *http.Request) (args []string, errMessage string) {
 	return args, ""
 }
 
+func getPackageNameFromArgs(arg string) (packageName string, ok bool) {
+	if contains(packageList, arg) {
+		return arg, true
+	}
+	packageName, ok = aliases[arg]
+	return packageName, ok
+}
+
 func contains(slice []string, value string) bool {
 	for _, elem := range slice {
 		if elem == value {

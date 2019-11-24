@@ -104,7 +104,7 @@ func addNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(args) != 5 {
-		text += fmt.Sprintf("Wrong use: %s unique_name webhook packageName minimum_frequency_in_seconds", args[0])
+		text += fmt.Sprintf("Wrong use: %s unique_name webhook packageName_or_alias minimum_frequency_in_seconds", args[0])
 		return
 	}
 	if _, ok := newReviewsAlerts[args[1]]; ok {
@@ -112,20 +112,21 @@ func addNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !contains(packageList, args[3]) {
+	packageName, ok := getPackageNameFromArgs(args[3])
+	if !ok {
 		text += fmt.Sprintf("Package %s is not yet registered.", args[3])
 		return
 	}
 
 	frequency, err := strconv.ParseInt(args[4], 10, 64)
 	if err != nil || frequency <= 0 {
-		text += fmt.Sprintf("%s is not a well formed frequency. Please use a positive number.", args[3])
+		text += fmt.Sprintf("%s is not a well formed frequency. Please use a positive number.", args[4])
 		return
 	}
 
 	newReviewsAlerts[args[1]] = newReviewsAlert{
 		webhook:     args[2],
-		packageName: args[3],
+		packageName: packageName,
 		frequency:   frequency,
 		lastAlerted: time.Now(),
 	}
