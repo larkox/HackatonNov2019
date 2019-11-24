@@ -152,18 +152,18 @@ func addApp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if contains(packageList, args[1]) {
-		text += fmt.Sprintf("Package %s already registered.\"}", args[1])
+		text += fmt.Sprintf("Package %s already registered.", args[1])
 		return
 	}
 
 	_, err := service.Reviews.List(args[1]).Do()
 	if err != nil {
-		text += fmt.Sprintf("Error registering the app %s: %v\"}", args[1], err.Error())
+		text += fmt.Sprintf("Error registering the app %s: %v", args[1], err.Error())
 		return
 	}
 
 	packageList = append(packageList, args[1])
-	text += fmt.Sprintf("Package %s added to the system.\"}", args[1])
+	text += fmt.Sprintf("Package %s added to the system.", args[1])
 }
 
 func setAlias(w http.ResponseWriter, r *http.Request) {
