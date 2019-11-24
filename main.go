@@ -3,11 +3,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/mattermost/mattermost-server/model"
 	"google.golang.org/api/androidpublisher/v3"
 )
 
@@ -15,22 +17,6 @@ var service *androidpublisher.Service
 
 var packageList = []string{}
 var aliases = make(map[string]string)
-
-// OutgoingWebhookJSON Schema of the payload of Outgoing Webhooks received from Mattermost
-type OutgoingWebhookJSON = struct {
-	Token       string `json:"token"`
-	TeamID      string `json:"team_id"`
-	TeamDomain  string `json:"team_domain"`
-	ChannelID   string `json:"channel_id"`
-	ChannelName string `json:"channel_name"`
-	Timestamp   int64  `json:"timestamp"`
-	UserID      string `json:"user_id"`
-	UserName    string `json:"user_name"`
-	PostID      string `json:"post_id"`
-	Text        string `json:"text"`
-	TriggerWord string `json:"trigger_word"`
-	FileIds     string `json:"file_ids"`
-}
 
 const (
 	getListTime = 30 * time.Second
@@ -44,11 +30,11 @@ func main() {
 
 	http.HandleFunc("/list", serveList)
 	http.HandleFunc("/listApps", serveAppList)
+	http.HandleFunc("/listNewReviewsAlerts", serveListNewReviewsAlerts)
 	http.HandleFunc("/setAlias", setAlias)
 	http.HandleFunc("/addApp", addApp)
 	http.HandleFunc("/addNewReviewsAlert", addNewReviewsAlert)
 	http.HandleFunc("/removeNewReviewsAlert", removeNewReviewsAlert)
-	http.HandleFunc("/listNewReviewsAlerts", listNewReviewsAlerts)
 	go getAllReviews()
 	http.ListenAndServe(":8080", nil)
 }
@@ -65,59 +51,75 @@ func initService() (*androidpublisher.Service, error) {
 }
 
 func removeNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "{\"text\":\"\\n")
-	defer fmt.Fprint(w, "\"}")
+	var text string
+	response := model.OutgoingWebhookResponse{
+		Text: &text,
+	}
+	encoder := json.NewEncoder(w)
+	defer encoder.Encode(response)
 
 	args, errMessage := getArgs(r)
 	if args == nil {
-		fmt.Fprintf(w, "%s", errMessage)
+		text += errMessage
 		return
 	}
 	if len(args) != 2 {
-		fmt.Fprintf(w, "Wrong use: %s unique_name.", args[0])
+		text += fmt.Sprintf("Wrong use: %s unique_name.", args[0])
 		return
 	}
 	if _, ok := newReviewsAlerts[args[1]]; !ok {
-		fmt.Fprintf(w, "There no alert named %s.", args[1])
+		text += fmt.Sprintf("There no alert named %s.", args[1])
 		return
 	}
 
 	delete(newReviewsAlerts, args[1])
-	fmt.Fprintf(w, "Alert %s removed.", args[1])
+	text += fmt.Sprintf("Alert %s removed.", args[1])
 }
 
-func listNewReviewsAlerts(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "{\"text\":\"\\n")
-	defer fmt.Fprint(w, "\"}")
+func serveListNewReviewsAlerts(w http.ResponseWriter, r *http.Request) {
+	var text string
+	response := model.OutgoingWebhookResponse{
+		Text: &text,
+	}
+	encoder := json.NewEncoder(w)
+	defer encoder.Encode(response)
 
 	for k, v := range newReviewsAlerts {
-		fmt.Fprintf(w, "Alert \\\"%s\\\": From package %s every %v seconds at most on webhook %s\\n", k, v.packageName, v.frequency, v.webhook)
+		text += fmt.Sprintf("Alert \"%s\": From package %s every %v seconds at most on webhook %s\n", k, v.packageName, v.frequency, v.webhook)
 	}
 }
 
 func addNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "{\"text\":\"\\n")
+	var text string
+	response := model.OutgoingWebhookResponse{
+		Text: &text,
+	}
+	encoder := json.NewEncoder(w)
+	defer encoder.Encode(response)
+
 	args, errMessage := getArgs(r)
 	if args == nil {
-		fmt.Fprintf(w, "%s\"}", errMessage)
+		text += errMessage
 		return
 	}
+
 	if len(args) != 5 {
-		fmt.Fprintf(w, "Wrong use: addNewReviewsAlert unique_name webhook packageName minimum_frequency_in_seconds\"}")
+		text += fmt.Sprintf("Wrong use: %s unique_name webhook packageName minimum_frequency_in_seconds", args[0])
 		return
 	}
 	if _, ok := newReviewsAlerts[args[1]]; ok {
-		fmt.Fprintf(w, "There is already an alert named %s.\"}", args[1])
+		text += fmt.Sprintf("There is already an alert named %s.", args[1])
 		return
 	}
 
 	if !contains(packageList, args[3]) {
-		fmt.Fprintf(w, "Package %s is not yet registered.\"}", args[3])
+		text += fmt.Sprintf("Package %s is not yet registered.", args[3])
 		return
 	}
+
 	frequency, err := strconv.ParseInt(args[4], 10, 64)
 	if err != nil || frequency <= 0 {
-		fmt.Fprintf(w, "%s is not a well formed frequency. Please use a positive number.\"}", args[3])
+		text += fmt.Sprintf("%s is not a well formed frequency. Please use a positive number.", args[3])
 		return
 	}
 
@@ -127,88 +129,115 @@ func addNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
 		frequency:   frequency,
 		lastAlerted: time.Now(),
 	}
-	fmt.Fprintf(w, "Alert %s registered.\"}", args[1])
+
+	text += fmt.Sprintf("Alert %s registered.", args[1])
 }
 
 func addApp(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "{\"text\":\"\\n")
+	var text string
+	response := model.OutgoingWebhookResponse{
+		Text: &text,
+	}
+	encoder := json.NewEncoder(w)
+	defer encoder.Encode(response)
+
 	args, errMessage := getArgs(r)
 	if args == nil {
-		fmt.Fprintf(w, "%s\"}", errMessage)
+		text += errMessage
 		return
 	}
 	if len(args) != 2 {
-		fmt.Fprintf(w, "Wrong use: addApp packageName\"}")
+		text += fmt.Sprintf("Wrong use: %s packageName", args[0])
 		return
 	}
+
 	if contains(packageList, args[1]) {
-		fmt.Fprintf(w, "Package %s already registered.\"}", args[1])
+		text += fmt.Sprintf("Package %s already registered.\"}", args[1])
 		return
 	}
 
 	_, err := service.Reviews.List(args[1]).Do()
 	if err != nil {
-		fmt.Fprintf(w, "Error registering the app %s: %v\"}", args[1], err.Error())
+		text += fmt.Sprintf("Error registering the app %s: %v\"}", args[1], err.Error())
 		return
 	}
 
 	packageList = append(packageList, args[1])
-	fmt.Fprintf(w, "Package %s added to the system.\"}", args[1])
+	text += fmt.Sprintf("Package %s added to the system.\"}", args[1])
 }
 
 func setAlias(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "{\"text\":\"\\n")
+	var text string
+	response := model.OutgoingWebhookResponse{
+		Text: &text,
+	}
+	encoder := json.NewEncoder(w)
+	defer encoder.Encode(response)
+
 	args, errMessage := getArgs(r)
 	if args == nil {
-		fmt.Fprintf(w, "%s\"}", errMessage)
+		text += errMessage
 		return
 	}
+
 	if len(args) != 3 {
-		fmt.Fprintf(w, "Wrong use: setAlias alias packageName\"}")
+		text += fmt.Sprintf("Wrong use: %s alias packageName", args[0])
 		return
 	}
-	if contains(packageList, args[2]) {
-		if _, ok := aliases[args[1]]; ok {
-			fmt.Fprintf(w, "Alias %s already set for app %s\"}", args[1], aliases[args[1]])
-			return
-		}
-		aliases[args[1]] = args[2]
-		fmt.Fprintf(w, "Alias %s set for app %s.\"}", args[1], args[2])
+	if !contains(packageList, args[2]) {
+		fmt.Fprintf(w, "App %s not registered.", args[2])
 		return
 	}
-	fmt.Fprintf(w, "App %s not registered.\"}", args[2])
+
+	if _, ok := aliases[args[1]]; ok {
+		text += fmt.Sprintf("Alias %s already set for app %s.", args[1], aliases[args[1]])
+		return
+	}
+
+	aliases[args[1]] = args[2]
+	text += fmt.Sprintf("Alias %s set for app %s.", args[1], args[2])
 }
 
 func serveAppList(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "{\"text\":\"\\n")
-	fmt.Fprint(w, "Here are all the apps you have registered:\\n")
+	var text string
+	response := model.OutgoingWebhookResponse{
+		Text: &text,
+	}
+	encoder := json.NewEncoder(w)
+	defer encoder.Encode(response)
+
+	text += "Here are all the apps you have registered:\n"
 	for _, packageName := range packageList {
-		fmt.Fprint(w, packageName)
+		text += packageName
 		if al := getAliasesForPackage(packageName); len(al) > 0 {
-			fmt.Fprint(w, " AKA")
+			text += " AKA"
 			for _, alias := range al {
-				fmt.Fprintf(w, " %s", alias)
+				text += fmt.Sprintf(" %s", alias)
 			}
 		}
-		fmt.Fprint(w, "\\n")
+		text += "\n"
 	}
-	fmt.Fprintf(w, "\"}")
 }
 
 func serveList(w http.ResponseWriter, r *http.Request) {
+	var text string
+	response := model.OutgoingWebhookResponse{
+		Text: &text,
+	}
+	encoder := json.NewEncoder(w)
+	defer encoder.Encode(response)
+
 	maxReviewsServed := 10
-	fmt.Fprint(w, "{\"text\":\"\\n")
-	fmt.Fprintf(w, "Here are the %d latest reviews from each app:\\n", maxReviewsServed)
+	text += fmt.Sprintf("Here are the %d latest reviews from each app:\n", maxReviewsServed)
 	reviewsMutex.Lock()
 	defer reviewsMutex.Unlock()
 	for key, reviewList := range localReviews {
-		fmt.Fprintf(w, "Package Id: %s\\n", key)
+		text += fmt.Sprintf("Package Id: %s\n", key)
 		for i, review := range reviewList {
 			if i >= maxReviewsServed {
 				break
 			}
-			fmt.Fprintf(w, formatReview(review))
+			text += formatReview(review)
 		}
 	}
-	fmt.Fprintf(w, "\"}")
 }

@@ -95,7 +95,7 @@ func formatReview(review *androidpublisher.Review) string {
 	}
 
 	lastModified := review.Comments[0].UserComment.LastModified
-	return fmt.Sprintf("%s commented (%s):\\n%s\\non %s\\nReviewId:%s\\n",
+	return fmt.Sprintf("%s commented (%s):\n%s\non %s\nReviewId:%s\n",
 		review.AuthorName,
 		stars[review.Comments[0].UserComment.StarRating],
 		review.Comments[0].UserComment.Text,

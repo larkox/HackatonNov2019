@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/mattermost/mattermost-server/model"
+
 	"google.golang.org/api/androidpublisher/v3"
 )
 
 func getArgs(r *http.Request) (args []string, errMessage string) {
-	requestJSON := OutgoingWebhookJSON{}
+	requestJSON := model.OutgoingWebhookPayload{}
 	err := json.NewDecoder(r.Body).Decode(&requestJSON)
 	if err != nil {
 		errMessage = fmt.Sprintf("Error on request:%s", err.Error())

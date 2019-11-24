@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/mattermost/mattermost-server/model"
 
 	"google.golang.org/api/androidpublisher/v3"
 )
@@ -20,11 +23,23 @@ var newReviewsAlerts = make(map[string]newReviewsAlert)
 
 func testAlert(review *androidpublisher.Review) {
 	for k, v := range newReviewsAlerts {
-		message := "Test alert for alert named " + k
-		payload := "{\"text\": \"" + message + "\\n" + formatReview(review) + "\"}"
-		_, err := http.Post(v.webhook, "application/json", strings.NewReader(payload))
+		text := fmt.Sprintf("Test alert for alert named %s\n", k)
+		text += formatReview(review)
+		request := model.IncomingWebhookRequest{
+			Text: text,
+		}
+
+		b, err := json.Marshal(request)
+
 		if err != nil {
 			fmt.Print(err.Error())
+			return
+		}
+
+		_, err = http.Post(v.webhook, "application/json", strings.NewReader(string(b)))
+		if err != nil {
+			fmt.Print(err.Error())
+			return
 		}
 	}
 }
@@ -52,7 +67,8 @@ func sendReviewsAlert(alert newReviewsAlert, alertSync chan bool) {
 		return
 	}
 
-	payload := "{\"text\": \""
+	var text string
+
 	reviewsMutex.Lock()
 	defer func() {
 		reviewsMutex.Unlock()
@@ -63,14 +79,24 @@ func sendReviewsAlert(alert newReviewsAlert, alertSync chan bool) {
 	showing := min(newReviewsCounts[alert.packageName], maxReviewsServed)
 
 	for _, review := range localReviews[alert.packageName][:showing] {
-		payload += formatReview(review)
+		text += formatReview(review)
 	}
 	if showing > maxReviewsServed {
-		payload += fmt.Sprintf("and %d more not shown.", newReviewsCounts[alert.packageName]-showing)
+		text += fmt.Sprintf("and %d more not shown.", newReviewsCounts[alert.packageName]-showing)
 	}
 
-	payload += "\"}"
-	_, err := http.Post(alert.webhook, "application/json", strings.NewReader(payload))
+	request := model.IncomingWebhookRequest{
+		Text: text,
+	}
+
+	b, err := json.Marshal(request)
+
+	if err != nil {
+		fmt.Print(err.Error())
+		return
+	}
+
+	_, err = http.Post(alert.webhook, "application/json", strings.NewReader(string(b)))
 	if err != nil {
 		fmt.Print(err.Error())
 		return
