@@ -30,7 +30,7 @@ func getArgs(r *http.Request) (args []string, errMessage string) {
 	return args, ""
 }
 
-func getPackageNameFromArgs(arg string) (packageName string, ok bool) {
+func getPackageNameFromArgs(arg string, packageList []string, aliases map[string]string) (packageName string, ok bool) {
 	if contains(packageList, arg) {
 		return arg, true
 	}
@@ -47,7 +47,7 @@ func contains(slice []string, value string) bool {
 	return false
 }
 
-func getAliasesForPackage(packageName string) []string {
+func getAliasesForPackage(packageName string, aliases map[string]string) []string {
 	result := []string{}
 	for k, v := range aliases {
 		if v == packageName {

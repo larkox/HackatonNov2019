@@ -19,10 +19,8 @@ type newReviewsAlert = struct {
 	lastAlerted time.Time
 }
 
-var newReviewsAlerts = make(map[string]newReviewsAlert)
-
-func testAlert(review *androidpublisher.Review) {
-	for k, v := range newReviewsAlerts {
+func (s *server) testAlert(review *androidpublisher.Review) {
+	for k, v := range s.alerts.newReviewsAlerts {
 		text := fmt.Sprintf("Test alert for alert named %s\n", k)
 		text += formatReview(review)
 		request := model.IncomingWebhookRequest{
@@ -44,12 +42,12 @@ func testAlert(review *androidpublisher.Review) {
 	}
 }
 
-func alertNewReviews(packageName string) {
+func (s *server) alertNewReviews(packageName string) {
 	alertSync := make(chan bool)
 	waitFor := 0
-	for _, v := range newReviewsAlerts {
+	for _, v := range s.alerts.newReviewsAlerts {
 		if v.packageName == packageName {
-			go sendReviewsAlert(v, alertSync)
+			go s.sendReviewsAlert(v, alertSync)
 			waitFor++
 		}
 	}
@@ -59,10 +57,10 @@ func alertNewReviews(packageName string) {
 	reviewsMutex.Lock()
 	defer reviewsMutex.Unlock()
 
-	newReviewsCounts[packageName] = 0
+	s.newReviewsCounts[packageName] = 0
 }
 
-func sendReviewsAlert(alert newReviewsAlert, alertSync chan bool) {
+func (s *server) sendReviewsAlert(alert newReviewsAlert, alertSync chan bool) {
 	if alert.lastAlerted.Unix()+alert.frequency > time.Now().Unix() {
 		return
 	}
@@ -75,14 +73,13 @@ func sendReviewsAlert(alert newReviewsAlert, alertSync chan bool) {
 		alertSync <- true
 	}()
 
-	maxReviewsServed := 10
-	showing := min(newReviewsCounts[alert.packageName], maxReviewsServed)
+	showing := min(s.newReviewsCounts[alert.packageName], s.config.maxReviewsServed)
 
-	for _, review := range localReviews[alert.packageName][:showing] {
+	for _, review := range s.localReviews[alert.packageName][:showing] {
 		text += formatReview(review)
 	}
-	if showing > maxReviewsServed {
-		text += fmt.Sprintf("and %d more not shown.", newReviewsCounts[alert.packageName]-showing)
+	if showing > s.config.maxReviewsServed {
+		text += fmt.Sprintf("and %d more not shown.", s.newReviewsCounts[alert.packageName]-showing)
 	}
 
 	request := model.IncomingWebhookRequest{

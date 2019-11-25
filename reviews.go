@@ -8,9 +8,6 @@ import (
 	"google.golang.org/api/androidpublisher/v3"
 )
 
-// Newer reviews will always be on the lower ids of the slice
-var localReviews = make(map[string][]*androidpublisher.Review)
-var newReviewsCounts = make(map[string]int)
 var reviewsMutex sync.Mutex
 
 type reviewsGetResponse = struct {
@@ -44,31 +41,31 @@ var mockReview = androidpublisher.Review{
 	ReviewId: "ReviewId",
 }
 
-func getAllReviews() {
+func (s *server) getAllReviews() {
 	for {
-		//testAlert(&mockReview)
+		//s.testAlert(&mockReview)
 		listSyncChannel := make(chan reviewsGetResponse)
-		time.Sleep(getListTime)
-		for _, packageName := range packageList {
-			go getReviews(packageName, listSyncChannel)
+		time.Sleep(s.config.getListTime)
+		for _, packageName := range s.packageList {
+			go s.getReviews(packageName, listSyncChannel)
 		}
-		for range packageList {
+		for range s.packageList {
 			getResponse := <-listSyncChannel
 			if getResponse.list == nil {
 				continue
 			}
-			mergeReviewLists(localReviews[getResponse.packageName], getResponse.list, getResponse.packageName)
+			s.newReviewsCounts[getResponse.packageName] += mergeReviewLists(s.localReviews[getResponse.packageName], getResponse.list, getResponse.packageName)
 		}
-		for k, v := range newReviewsCounts {
+		for k, v := range s.newReviewsCounts {
 			if v > 0 {
-				go alertNewReviews(k)
+				go s.alertNewReviews(k)
 			}
 		}
 	}
 }
 
-func getReviews(packageName string, listSyncChannel chan reviewsGetResponse) {
-	list, err := service.Reviews.List(packageName).Do()
+func (s *server) getReviews(packageName string, listSyncChannel chan reviewsGetResponse) {
+	list, err := s.service.Reviews.List(packageName).Do()
 	if err != nil {
 		fmt.Print(err.Error())
 		listSyncChannel <- reviewsGetResponse{
@@ -103,7 +100,7 @@ func formatReview(review *androidpublisher.Review) string {
 		review.ReviewId)
 }
 
-func mergeReviewLists(localList []*androidpublisher.Review, remoteList []*androidpublisher.Review, packageName string) {
+func mergeReviewLists(localList []*androidpublisher.Review, remoteList []*androidpublisher.Review, packageName string) int {
 	reviewsMutex.Lock()
 	defer reviewsMutex.Unlock()
 	// Remove already cached elements
@@ -124,8 +121,10 @@ func mergeReviewLists(localList []*androidpublisher.Review, remoteList []*androi
 		}
 	}
 
-	newReviewsCounts[packageName] += len(remoteList)
+	newReviews := len(remoteList)
 
 	// Join lists
 	localList = append(remoteList, localList...)
+
+	return newReviews
 }
