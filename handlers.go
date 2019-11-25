@@ -10,7 +10,7 @@ import (
 	"github.com/mattermost/mattermost-server/model"
 )
 
-func (s *server) removeNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
+func (s *server) removeNewReviewsAlert(w http.ResponseWriter, r *http.Request, args []string) {
 	var text string
 	response := model.OutgoingWebhookResponse{
 		Text: &text,
@@ -18,26 +18,23 @@ func (s *server) removeNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
 	defer encoder.Encode(response)
 
-	args, errMessage := getArgs(r)
-	if args == nil {
-		text += errMessage
+	alertName := args[4]
+
+	if len(args) != 5 {
+		text += fmt.Sprintf("Wrong use: %s %s %s %s unique_name.", args[0], args[1], args[2], args[3])
 		return
 	}
-	if len(args) != 2 {
-		text += fmt.Sprintf("Wrong use: %s unique_name.", args[0])
-		return
-	}
-	if _, ok := s.alerts.NewReviewsAlerts[args[1]]; !ok {
-		text += fmt.Sprintf("There no alert named %s.", args[1])
+	if _, ok := s.alerts.NewReviewsAlerts[alertName]; !ok {
+		text += fmt.Sprintf("There no alert named %s.", alertName)
 		return
 	}
 
-	delete(s.alerts.NewReviewsAlerts, args[1])
+	delete(s.alerts.NewReviewsAlerts, alertName)
 	s.SaveAlerts()
-	text += fmt.Sprintf("Alert %s removed.", args[1])
+	text += fmt.Sprintf("Alert %s removed.", alertName)
 }
 
-func (s *server) serveListNewReviewsAlerts(w http.ResponseWriter, r *http.Request) {
+func (s *server) serveListNewReviewsAlerts(w http.ResponseWriter, r *http.Request, args []string) {
 	var text string
 	response := model.OutgoingWebhookResponse{
 		Text: &text,
@@ -50,7 +47,7 @@ func (s *server) serveListNewReviewsAlerts(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func (s *server) addNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
+func (s *server) addNewReviewsAlert(w http.ResponseWriter, r *http.Request, args []string) {
 	var text string
 	response := model.OutgoingWebhookResponse{
 		Text: &text,
@@ -58,45 +55,44 @@ func (s *server) addNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
 	defer encoder.Encode(response)
 
-	args, errMessage := getArgs(r)
-	if args == nil {
-		text += errMessage
+	if len(args) != 8 {
+		text += fmt.Sprintf("Wrong use: %s %s %s %s unique_name webhook packageName_or_alias minimum_frequency_in_seconds", args[0], args[1], args[2], args[3])
+		return
+	}
+	uniqueName := args[4]
+	webhook := args[5]
+	packageNameOrAlias := args[6]
+	minimumFrequency := args[7]
+
+	if _, ok := s.alerts.NewReviewsAlerts[uniqueName]; ok {
+		text += fmt.Sprintf("There is already an alert named %s.", uniqueName)
 		return
 	}
 
-	if len(args) != 5 {
-		text += fmt.Sprintf("Wrong use: %s unique_name webhook packageName_or_alias minimum_frequency_in_seconds", args[0])
-		return
-	}
-	if _, ok := s.alerts.NewReviewsAlerts[args[1]]; ok {
-		text += fmt.Sprintf("There is already an alert named %s.", args[1])
-		return
-	}
-
-	packageName, ok := getPackageNameFromArgs(args[3], s.packageList, s.aliases)
+	packageName, ok := getPackageNameFromArgs(packageNameOrAlias, s.packageList, s.aliases)
 	if !ok {
-		text += fmt.Sprintf("Package %s is not yet registered.", args[3])
+		text += fmt.Sprintf("Package %s is not yet registered.", packageNameOrAlias)
 		return
 	}
 
-	frequency, err := strconv.ParseInt(args[4], 10, 64)
+	frequency, err := strconv.ParseInt(minimumFrequency, 10, 64)
 	if err != nil || frequency <= 0 {
-		text += fmt.Sprintf("%s is not a well formed frequency. Please use a positive number.", args[4])
+		text += fmt.Sprintf("%s is not a well formed frequency. Please use a positive number.", minimumFrequency)
 		return
 	}
 
-	s.alerts.NewReviewsAlerts[args[1]] = NewReviewsAlert{
-		Webhook:     args[2],
+	s.alerts.NewReviewsAlerts[uniqueName] = NewReviewsAlert{
+		Webhook:     webhook,
 		PackageName: packageName,
 		Frequency:   frequency,
 		LastAlerted: time.Now(),
 	}
 	s.SaveAlerts()
 
-	text += fmt.Sprintf("Alert %s registered.", args[1])
+	text += fmt.Sprintf("Alert %s registered.", uniqueName)
 }
 
-func (s *server) addApp(w http.ResponseWriter, r *http.Request) {
+func (s *server) addApp(w http.ResponseWriter, r *http.Request, args []string) {
 	var text string
 	response := model.OutgoingWebhookResponse{
 		Text: &text,
@@ -104,33 +100,30 @@ func (s *server) addApp(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
 	defer encoder.Encode(response)
 
-	args, errMessage := getArgs(r)
-	if args == nil {
-		text += errMessage
-		return
-	}
-	if len(args) != 2 {
-		text += fmt.Sprintf("Wrong use: %s packageName", args[0])
+	if len(args) != 4 {
+		text += fmt.Sprintf("Wrong use: %s %s %s packageName", args[0], args[1], args[2])
 		return
 	}
 
-	if contains(s.packageList, args[1]) {
-		text += fmt.Sprintf("Package %s already registered.", args[1])
+	packageName := args[3]
+
+	if contains(s.packageList, packageName) {
+		text += fmt.Sprintf("Package %s already registered.", packageName)
 		return
 	}
 
-	_, err := s.service.Reviews.List(args[1]).Do()
+	_, err := s.service.Reviews.List(packageName).Do()
 	if err != nil {
-		text += fmt.Sprintf("Error registering the app %s: %v", args[1], err.Error())
+		text += fmt.Sprintf("Error registering the app %s: %v", packageName, err.Error())
 		return
 	}
 
-	s.packageList = append(s.packageList, args[1])
+	s.packageList = append(s.packageList, packageName)
 	s.SavePackages()
-	text += fmt.Sprintf("Package %s added to the system.", args[1])
+	text += fmt.Sprintf("Package %s added to the system.", packageName)
 }
 
-func (s *server) setAlias(w http.ResponseWriter, r *http.Request) {
+func (s *server) setAlias(w http.ResponseWriter, r *http.Request, args []string) {
 	var text string
 	response := model.OutgoingWebhookResponse{
 		Text: &text,
@@ -138,32 +131,30 @@ func (s *server) setAlias(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
 	defer encoder.Encode(response)
 
-	args, errMessage := getArgs(r)
-	if args == nil {
-		text += errMessage
+	if len(args) != 5 {
+		text += fmt.Sprintf("Wrong use: %s %s %s aliasName packageName", args[0], args[1], args[2])
 		return
 	}
 
-	if len(args) != 3 {
-		text += fmt.Sprintf("Wrong use: %s alias packageName", args[0])
-		return
-	}
-	if !contains(s.packageList, args[2]) {
-		fmt.Fprintf(w, "App %s not registered.", args[2])
+	aliasName := args[3]
+	packageName := args[4]
+
+	if !contains(s.packageList, packageName) {
+		fmt.Fprintf(w, "App %s not registered.", packageName)
 		return
 	}
 
-	if _, ok := s.aliases[args[1]]; ok {
-		text += fmt.Sprintf("Alias %s already set for app %s.", args[1], s.aliases[args[1]])
+	if _, ok := s.aliases[aliasName]; ok {
+		text += fmt.Sprintf("Alias %s already set for app %s.", aliasName, s.aliases[aliasName])
 		return
 	}
 
-	s.aliases[args[1]] = args[2]
+	s.aliases[aliasName] = packageName
 	s.SaveAliases()
-	text += fmt.Sprintf("Alias %s set for app %s.", args[1], args[2])
+	text += fmt.Sprintf("Alias %s set for app %s.", aliasName, packageName)
 }
 
-func (s *server) serveAppList(w http.ResponseWriter, r *http.Request) {
+func (s *server) serveAppList(w http.ResponseWriter, r *http.Request, args []string) {
 	var text string
 	response := model.OutgoingWebhookResponse{
 		Text: &text,
@@ -184,7 +175,7 @@ func (s *server) serveAppList(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) serveList(w http.ResponseWriter, r *http.Request) {
+func (s *server) serveList(w http.ResponseWriter, r *http.Request, args []string) {
 	var text string
 	response := model.OutgoingWebhookResponse{
 		Text: &text,

@@ -9,13 +9,13 @@ Once created, you will have a json file with the credentials. Put those credenti
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/my/file/file_name.json
 
 With the current version you can:
-- Add apps to the application from mattermost using an outgoing webhook to "/addApp" (Usage: trigger packageId)
-- Set aliases for your apps using an outgoing webhook to "/setAlias" (Usage: trigger alias packageId)
-- List your registered apps on the application using an outgoing webhook to "/listApps" (Usage: trigger)
-- List your most recent reviews from all your apps using an outgoing webhook to "/list" (Usage: trigger)
-- Configure an alert on a incoming webhook to tell you when there are new reivews using an outgoing webhook to /addNewReviewsAlert (Usage: trigger name webhook packageId_or_alias frequency_in_seconds)
-  - List these alerts using an outoing webhook to "/listNewReviewsAlerts" (Usage: trigger)
-  - Remove these alerts using an outgoing webhook to "/removeNewReviewsAlert" (Usage: trigger alertName)
+- Add apps to the application from mattermost (Usage: trigger add app packageId)
+- Set aliases for your apps (Usage: trigger set alias aliasName packageId)
+- List your registered apps on the application (Usage: trigger list apps)
+- List your most recent reviews from all your apps (Usage: trigger list reviews)
+- Configure an alert on a incoming webhook to tell you when there are new reivews (Usage: trigger add alert newReviews name webhook packageId_or_alias frequency_in_seconds)
+  - List these alerts (Usage: trigger list alert newReviews)
+  - Remove these alerts (Usage: trigger remove alert newReviews alertName)
 
 The application on background is fetching periodically the latest reviews. This is used as cache, and also on later versions it will be used for alerts.
 
