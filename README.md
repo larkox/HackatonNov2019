@@ -25,7 +25,6 @@ TODO List:
   - Configure alerts based on star rating
   - Configure alerts for reviews updates
   - Configure "do not disturb" time for alerts
-- Data persistency
 - Answer reviews from mattermost
 - Improve style on messages sent to mattermost
 - Search reviews

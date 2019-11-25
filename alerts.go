@@ -12,15 +12,15 @@ import (
 	"google.golang.org/api/androidpublisher/v3"
 )
 
-type newReviewsAlert = struct {
-	webhook     string
-	packageName string
-	frequency   int64
-	lastAlerted time.Time
+type NewReviewsAlert = struct {
+	Webhook     string
+	PackageName string
+	Frequency   int64
+	LastAlerted time.Time
 }
 
 func (s *server) testAlert(review *androidpublisher.Review) {
-	for k, v := range s.alerts.newReviewsAlerts {
+	for k, v := range s.alerts.NewReviewsAlerts {
 		text := fmt.Sprintf("Test alert for alert named %s\n", k)
 		text += formatReview(review)
 		request := model.IncomingWebhookRequest{
@@ -34,7 +34,7 @@ func (s *server) testAlert(review *androidpublisher.Review) {
 			return
 		}
 
-		_, err = http.Post(v.webhook, "application/json", strings.NewReader(string(b)))
+		_, err = http.Post(v.Webhook, "application/json", strings.NewReader(string(b)))
 		if err != nil {
 			fmt.Print(err.Error())
 			return
@@ -45,8 +45,8 @@ func (s *server) testAlert(review *androidpublisher.Review) {
 func (s *server) alertNewReviews(packageName string) {
 	alertSync := make(chan bool)
 	waitFor := 0
-	for _, v := range s.alerts.newReviewsAlerts {
-		if v.packageName == packageName {
+	for _, v := range s.alerts.NewReviewsAlerts {
+		if v.PackageName == packageName {
 			go s.sendReviewsAlert(v, alertSync)
 			waitFor++
 		}
@@ -54,32 +54,32 @@ func (s *server) alertNewReviews(packageName string) {
 	for i := 0; i < waitFor; i++ {
 		_ = <-alertSync
 	}
-	reviewsMutex.Lock()
-	defer reviewsMutex.Unlock()
+	s.control.reviewsMutex.Lock()
+	defer s.control.reviewsMutex.Unlock()
 
 	s.newReviewsCounts[packageName] = 0
 }
 
-func (s *server) sendReviewsAlert(alert newReviewsAlert, alertSync chan bool) {
-	if alert.lastAlerted.Unix()+alert.frequency > time.Now().Unix() {
+func (s *server) sendReviewsAlert(alert NewReviewsAlert, alertSync chan bool) {
+	if alert.LastAlerted.Unix()+alert.Frequency > time.Now().Unix() {
 		return
 	}
 
 	var text string
 
-	reviewsMutex.Lock()
+	s.control.reviewsMutex.Lock()
 	defer func() {
-		reviewsMutex.Unlock()
+		s.control.reviewsMutex.Unlock()
 		alertSync <- true
 	}()
 
-	showing := min(s.newReviewsCounts[alert.packageName], s.config.maxReviewsServed)
+	showing := min(s.newReviewsCounts[alert.PackageName], s.config.MaxReviewsServed)
 
-	for _, review := range s.localReviews[alert.packageName][:showing] {
+	for _, review := range s.localReviews[alert.PackageName][:showing] {
 		text += formatReview(review)
 	}
-	if showing > s.config.maxReviewsServed {
-		text += fmt.Sprintf("and %d more not shown.", s.newReviewsCounts[alert.packageName]-showing)
+	if showing > s.config.MaxReviewsServed {
+		text += fmt.Sprintf("and %d more not shown.", s.newReviewsCounts[alert.PackageName]-showing)
 	}
 
 	request := model.IncomingWebhookRequest{
@@ -93,7 +93,7 @@ func (s *server) sendReviewsAlert(alert newReviewsAlert, alertSync chan bool) {
 		return
 	}
 
-	_, err = http.Post(alert.webhook, "application/json", strings.NewReader(string(b)))
+	_, err = http.Post(alert.Webhook, "application/json", strings.NewReader(string(b)))
 	if err != nil {
 		fmt.Print(err.Error())
 		return

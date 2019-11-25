@@ -27,12 +27,13 @@ func (s *server) removeNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
 		text += fmt.Sprintf("Wrong use: %s unique_name.", args[0])
 		return
 	}
-	if _, ok := s.alerts.newReviewsAlerts[args[1]]; !ok {
+	if _, ok := s.alerts.NewReviewsAlerts[args[1]]; !ok {
 		text += fmt.Sprintf("There no alert named %s.", args[1])
 		return
 	}
 
-	delete(s.alerts.newReviewsAlerts, args[1])
+	delete(s.alerts.NewReviewsAlerts, args[1])
+	s.SaveAlerts()
 	text += fmt.Sprintf("Alert %s removed.", args[1])
 }
 
@@ -44,8 +45,8 @@ func (s *server) serveListNewReviewsAlerts(w http.ResponseWriter, r *http.Reques
 	encoder := json.NewEncoder(w)
 	defer encoder.Encode(response)
 
-	for k, v := range s.alerts.newReviewsAlerts {
-		text += fmt.Sprintf("Alert \"%s\": From package %s every %v seconds at most on webhook %s\n", k, v.packageName, v.frequency, v.webhook)
+	for k, v := range s.alerts.NewReviewsAlerts {
+		text += fmt.Sprintf("Alert \"%s\": From package %s every %v seconds at most on webhook %s\n", k, v.PackageName, v.Frequency, v.Webhook)
 	}
 }
 
@@ -67,7 +68,7 @@ func (s *server) addNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
 		text += fmt.Sprintf("Wrong use: %s unique_name webhook packageName_or_alias minimum_frequency_in_seconds", args[0])
 		return
 	}
-	if _, ok := s.alerts.newReviewsAlerts[args[1]]; ok {
+	if _, ok := s.alerts.NewReviewsAlerts[args[1]]; ok {
 		text += fmt.Sprintf("There is already an alert named %s.", args[1])
 		return
 	}
@@ -84,12 +85,13 @@ func (s *server) addNewReviewsAlert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.alerts.newReviewsAlerts[args[1]] = newReviewsAlert{
-		webhook:     args[2],
-		packageName: packageName,
-		frequency:   frequency,
-		lastAlerted: time.Now(),
+	s.alerts.NewReviewsAlerts[args[1]] = NewReviewsAlert{
+		Webhook:     args[2],
+		PackageName: packageName,
+		Frequency:   frequency,
+		LastAlerted: time.Now(),
 	}
+	s.SaveAlerts()
 
 	text += fmt.Sprintf("Alert %s registered.", args[1])
 }
@@ -124,6 +126,7 @@ func (s *server) addApp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.packageList = append(s.packageList, args[1])
+	s.SavePackages()
 	text += fmt.Sprintf("Package %s added to the system.", args[1])
 }
 
@@ -156,6 +159,7 @@ func (s *server) setAlias(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.aliases[args[1]] = args[2]
+	s.SaveAliases()
 	text += fmt.Sprintf("Alias %s set for app %s.", args[1], args[2])
 }
 
@@ -188,13 +192,13 @@ func (s *server) serveList(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
 	defer encoder.Encode(response)
 
-	text += fmt.Sprintf("Here are the %d latest reviews from each app:\n", s.config.maxReviewsServed)
-	reviewsMutex.Lock()
-	defer reviewsMutex.Unlock()
+	text += fmt.Sprintf("Here are the %d latest reviews from each app:\n", s.config.MaxReviewsServed)
+	s.control.reviewsMutex.Lock()
+	defer s.control.reviewsMutex.Unlock()
 	for key, reviewList := range s.localReviews {
 		text += fmt.Sprintf("Package Id: %s\n", key)
 		for i, review := range reviewList {
-			if i >= s.config.maxReviewsServed {
+			if i >= s.config.MaxReviewsServed {
 				break
 			}
 			text += formatReview(review)

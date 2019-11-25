@@ -2,13 +2,10 @@ package main
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"google.golang.org/api/androidpublisher/v3"
 )
-
-var reviewsMutex sync.Mutex
 
 type reviewsGetResponse = struct {
 	packageName string
@@ -45,16 +42,27 @@ func (s *server) getAllReviews() {
 	for {
 		//s.testAlert(&mockReview)
 		listSyncChannel := make(chan reviewsGetResponse)
-		time.Sleep(s.config.getListTime)
+		time.Sleep(s.config.GetListTime)
 		for _, packageName := range s.packageList {
 			go s.getReviews(packageName, listSyncChannel)
 		}
+		shouldSave := false
 		for range s.packageList {
 			getResponse := <-listSyncChannel
 			if getResponse.list == nil {
 				continue
 			}
-			s.newReviewsCounts[getResponse.packageName] += mergeReviewLists(s.localReviews[getResponse.packageName], getResponse.list, getResponse.packageName)
+			s.control.reviewsMutex.Lock()
+			defer s.control.reviewsMutex.Unlock()
+			count := mergeReviewLists(s.localReviews[getResponse.packageName], getResponse.list, getResponse.packageName)
+
+			if count > 0 {
+				s.newReviewsCounts[getResponse.packageName] += count
+				shouldSave = true
+			}
+		}
+		if shouldSave {
+			s.SaveReviews()
 		}
 		for k, v := range s.newReviewsCounts {
 			if v > 0 {
@@ -101,8 +109,6 @@ func formatReview(review *androidpublisher.Review) string {
 }
 
 func mergeReviewLists(localList []*androidpublisher.Review, remoteList []*androidpublisher.Review, packageName string) int {
-	reviewsMutex.Lock()
-	defer reviewsMutex.Unlock()
 	// Remove already cached elements
 	for i := range remoteList {
 		if remoteList[i].Comments[0].UserComment.LastModified.Seconds <= localList[0].Comments[0].UserComment.LastModified.Seconds {
