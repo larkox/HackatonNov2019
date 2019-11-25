@@ -9,14 +9,16 @@ import (
 )
 
 type plainJSONPersistency struct {
-	CONFIG_FILENAME   string
-	PACKAGES_FILENAME string
-	ALIASES_FILENAME  string
-	REVIEWS_FILENAME  string
-	ALERTS_FILENAME   string
+	DEFAULT_CONFIG_FILENAME string
+	CONFIG_FILENAME         string
+	PACKAGES_FILENAME       string
+	ALIASES_FILENAME        string
+	REVIEWS_FILENAME        string
+	ALERTS_FILENAME         string
 }
 
 func (p *plainJSONPersistency) Init() {
+	p.DEFAULT_CONFIG_FILENAME = "default_config.json"
 	p.CONFIG_FILENAME = "data/config.json"
 	p.PACKAGES_FILENAME = "data/packages.json"
 	p.ALIASES_FILENAME = "data/aliases.json"
@@ -37,17 +39,34 @@ func (p *plainJSONPersistency) SaveConfig(config ServerConfig) {
 	}
 }
 
-func (p *plainJSONPersistency) LoadConfig(config *ServerConfig) {
+func (p *plainJSONPersistency) LoadConfig(config *ServerConfig) bool {
 	data, err := ioutil.ReadFile(p.CONFIG_FILENAME)
 	if err != nil {
 		fmt.Println("Error loading config: " + err.Error())
-		return
+		return false
 	}
 
 	err = json.Unmarshal(data, config)
 	if err != nil {
 		fmt.Println("Error loading config: " + err.Error())
+		return false
 	}
+	return true
+}
+
+func (p *plainJSONPersistency) LoadDefaultConfig(config *ServerConfig) bool {
+	data, err := ioutil.ReadFile(p.DEFAULT_CONFIG_FILENAME)
+	if err != nil {
+		fmt.Println("Error loading default config: " + err.Error())
+		return false
+	}
+
+	err = json.Unmarshal(data, config)
+	if err != nil {
+		fmt.Println("Error loading default config: " + err.Error())
+		return false
+	}
+	return true
 }
 
 func (p *plainJSONPersistency) SavePackages(packageList []string) {
@@ -63,17 +82,19 @@ func (p *plainJSONPersistency) SavePackages(packageList []string) {
 	}
 }
 
-func (p *plainJSONPersistency) LoadPackages(packageList *[]string) {
+func (p *plainJSONPersistency) LoadPackages(packageList *[]string) bool {
 	data, err := ioutil.ReadFile(p.PACKAGES_FILENAME)
 	if err != nil {
 		fmt.Println("Error loading packages: " + err.Error())
-		return
+		return false
 	}
 
 	err = json.Unmarshal(data, packageList)
 	if err != nil {
 		fmt.Println("Error loading packages: " + err.Error())
+		return false
 	}
+	return true
 }
 
 func (p *plainJSONPersistency) SaveAliases(aliases map[string]string) {
@@ -89,17 +110,19 @@ func (p *plainJSONPersistency) SaveAliases(aliases map[string]string) {
 	}
 }
 
-func (p *plainJSONPersistency) LoadAliases(aliases *map[string]string) {
+func (p *plainJSONPersistency) LoadAliases(aliases *map[string]string) bool {
 	data, err := ioutil.ReadFile(p.ALIASES_FILENAME)
 	if err != nil {
 		fmt.Println("Error loading aliases: " + err.Error())
-		return
+		return false
 	}
 
 	err = json.Unmarshal(data, aliases)
 	if err != nil {
 		fmt.Println("Error loading aliases: " + err.Error())
+		return false
 	}
+	return true
 }
 
 func (p *plainJSONPersistency) SaveReviews(reviews map[string][]*androidpublisher.Review) {
@@ -115,17 +138,19 @@ func (p *plainJSONPersistency) SaveReviews(reviews map[string][]*androidpublishe
 	}
 }
 
-func (p *plainJSONPersistency) LoadReviews(reviews *map[string][]*androidpublisher.Review) {
+func (p *plainJSONPersistency) LoadReviews(reviews *map[string][]*androidpublisher.Review) bool {
 	data, err := ioutil.ReadFile(p.REVIEWS_FILENAME)
 	if err != nil {
 		fmt.Println("Error loading reviews: " + err.Error())
-		return
+		return false
 	}
 
 	err = json.Unmarshal(data, reviews)
 	if err != nil {
 		fmt.Println("Error loading reviews: " + err.Error())
+		return false
 	}
+	return true
 }
 
 func (p *plainJSONPersistency) SaveAlerts(alerts AlertsContainer) {
@@ -141,17 +166,19 @@ func (p *plainJSONPersistency) SaveAlerts(alerts AlertsContainer) {
 	}
 }
 
-func (p *plainJSONPersistency) LoadAlerts(alerts *AlertsContainer) {
+func (p *plainJSONPersistency) LoadAlerts(alerts *AlertsContainer) bool {
 	data, err := ioutil.ReadFile(p.ALERTS_FILENAME)
 	if err != nil {
 		fmt.Println("Error loading alerts: " + err.Error())
-		return
+		return false
 	}
 
 	err = json.Unmarshal(data, alerts)
 	if err != nil {
 		fmt.Println("Error loading alerts: " + err.Error())
+		return false
 	}
+	return true
 }
 
 func (p *plainJSONPersistency) SaveAll(s server) {
@@ -162,10 +189,11 @@ func (p *plainJSONPersistency) SaveAll(s server) {
 	p.SaveReviews(s.localReviews)
 }
 
-func (p *plainJSONPersistency) LoadAll(s *server) {
-	p.LoadPackages(&s.packageList)
-	p.LoadConfig(&s.config)
-	p.LoadAlerts(&s.alerts)
-	p.LoadAliases(&s.aliases)
-	p.LoadReviews(&s.localReviews)
+func (p *plainJSONPersistency) LoadAll(s *server) bool {
+	ok := p.LoadPackages(&s.packageList)
+	ok = ok && p.LoadConfig(&s.config)
+	ok = ok && p.LoadAlerts(&s.alerts)
+	ok = ok && p.LoadAliases(&s.aliases)
+	ok = ok && p.LoadReviews(&s.localReviews)
+	return ok
 }

@@ -20,7 +20,6 @@ With the current version you can:
 The application on background is fetching periodically the latest reviews. This is used as cache, and also on later versions it will be used for alerts.
 
 TODO List:
-- Config file, to setup everything without messing with the code
 - Create alerts from mattermost
   - Configure alerts based on star rating
   - Configure alerts for reviews updates

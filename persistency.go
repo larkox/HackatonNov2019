@@ -7,17 +7,18 @@ import (
 type persistencyInt interface {
 	Init()
 	SaveConfig(ServerConfig)
-	LoadConfig(*ServerConfig)
+	LoadConfig(*ServerConfig) bool
+	LoadDefaultConfig(*ServerConfig) bool
 	SavePackages([]string)
-	LoadPackages(*[]string)
+	LoadPackages(*[]string) bool
 	SaveAliases(map[string]string)
-	LoadAliases(*map[string]string)
+	LoadAliases(*map[string]string) bool
 	SaveReviews(map[string][]*androidpublisher.Review)
-	LoadReviews(*map[string][]*androidpublisher.Review)
+	LoadReviews(*map[string][]*androidpublisher.Review) bool
 	SaveAlerts(AlertsContainer)
-	LoadAlerts(*AlertsContainer)
+	LoadAlerts(*AlertsContainer) bool
 	SaveAll(server)
-	LoadAll(*server)
+	LoadAll(*server) bool
 }
 
 func (s *server) SaveConfig() {
@@ -25,7 +26,13 @@ func (s *server) SaveConfig() {
 }
 
 func (s *server) LoadConfig() {
-	s.persistency.LoadConfig(&s.config)
+	if !s.persistency.LoadConfig(&s.config) {
+		s.LoadDefaultConfig()
+	}
+}
+
+func (s *server) LoadDefaultConfig() {
+	s.persistency.LoadDefaultConfig(&s.config)
 }
 
 func (s *server) SavePackages() {
