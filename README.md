@@ -15,6 +15,10 @@ Once created, you will have a json file with the credentials. Put those credenti
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/my/file/file_name.json
 ```
 
+## Integration
+
+You just need to create a outgoing webhook from mattermost to the / of this application. Make sure the webhook is application/json.
+
 ## Usage
 
 With the current version you can:
