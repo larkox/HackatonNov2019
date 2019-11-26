@@ -36,6 +36,11 @@ type AlertsContainer struct {
 type ServerConfig struct {
 	GetListTime      time.Duration
 	MaxReviewsServed int
+	SaveConfig       bool
+	SavePackages     bool
+	SaveAliases      bool
+	SaveReviews      bool
+	SaveAlerts       bool
 }
 
 func newServer() *server {
@@ -45,10 +50,7 @@ func newServer() *server {
 		localReviews:     make(map[string][]*androidpublisher.Review),
 		newReviewsCounts: make(map[string]int),
 		persistency:      &plainJSONPersistency{},
-		config: ServerConfig{
-			GetListTime:      30 * time.Second,
-			MaxReviewsServed: 10,
-		},
+		config:           ServerConfig{},
 		alerts: AlertsContainer{
 			NewReviewsAlerts: make(map[string]NewReviewsAlert),
 		},

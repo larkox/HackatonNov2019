@@ -1,4 +1,9 @@
 {
     "GetListTime": 30000000000,
-    "MaxReviewsServed": 10
+    "MaxReviewsServed": 10,
+    "SaveConfig": true,
+    "SavePackages": true,
+    "SaveAliases": true,
+    "SaveReviews": false,
+    "SaveAlerts": true
 }

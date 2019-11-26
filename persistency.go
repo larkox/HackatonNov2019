@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"google.golang.org/api/androidpublisher/v3"
 )
 
@@ -17,12 +19,12 @@ type persistencyInt interface {
 	LoadReviews(*map[string][]*androidpublisher.Review) bool
 	SaveAlerts(AlertsContainer)
 	LoadAlerts(*AlertsContainer) bool
-	SaveAll(server)
-	LoadAll(*server) bool
 }
 
 func (s *server) SaveConfig() {
-	s.persistency.SaveConfig(s.config)
+	if s.config.SaveConfig {
+		s.persistency.SaveConfig(s.config)
+	}
 }
 
 func (s *server) LoadConfig() {
@@ -32,11 +34,18 @@ func (s *server) LoadConfig() {
 }
 
 func (s *server) LoadDefaultConfig() {
-	s.persistency.LoadDefaultConfig(&s.config)
+	if !s.persistency.LoadDefaultConfig(&s.config) {
+		s.config = ServerConfig{
+			GetListTime:      30 * time.Second,
+			MaxReviewsServed: 10,
+		}
+	}
 }
 
 func (s *server) SavePackages() {
-	s.persistency.SavePackages(s.packageList)
+	if s.config.SavePackages {
+		s.persistency.SavePackages(s.packageList)
+	}
 }
 
 func (s *server) LoadPackages() {
@@ -44,7 +53,9 @@ func (s *server) LoadPackages() {
 }
 
 func (s *server) SaveAliases() {
-	s.persistency.SaveAliases(s.aliases)
+	if s.config.SaveAliases {
+		s.persistency.SaveAliases(s.aliases)
+	}
 }
 
 func (s *server) LoadAliases() {
@@ -52,7 +63,9 @@ func (s *server) LoadAliases() {
 }
 
 func (s *server) SaveReviews() {
-	s.persistency.SaveReviews(s.localReviews)
+	if s.config.SaveReviews {
+		s.persistency.SaveReviews(s.localReviews)
+	}
 }
 
 func (s *server) LoadReviews() {
@@ -60,7 +73,9 @@ func (s *server) LoadReviews() {
 }
 
 func (s *server) SaveAlerts() {
-	s.persistency.SaveAlerts(s.alerts)
+	if s.config.SaveAlerts {
+		s.persistency.SaveAlerts(s.alerts)
+	}
 }
 
 func (s *server) LoadAlerts() {
@@ -68,9 +83,17 @@ func (s *server) LoadAlerts() {
 }
 
 func (s *server) SaveAll() {
-	s.persistency.SaveAll(*s)
+	s.SavePackages()
+	s.SaveConfig()
+	s.SaveAlerts()
+	s.SaveAliases()
+	s.SaveReviews()
 }
 
 func (s *server) LoadAll() {
-	s.persistency.LoadAll(s)
+	s.LoadPackages()
+	s.LoadConfig()
+	s.LoadAlerts()
+	s.LoadAliases()
+	s.LoadReviews()
 }

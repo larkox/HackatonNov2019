@@ -180,20 +180,3 @@ func (p *plainJSONPersistency) LoadAlerts(alerts *AlertsContainer) bool {
 	}
 	return true
 }
-
-func (p *plainJSONPersistency) SaveAll(s server) {
-	p.SavePackages(s.packageList)
-	p.SaveConfig(s.config)
-	p.SaveAlerts(s.alerts)
-	p.SaveAliases(s.aliases)
-	p.SaveReviews(s.localReviews)
-}
-
-func (p *plainJSONPersistency) LoadAll(s *server) bool {
-	ok := p.LoadPackages(&s.packageList)
-	ok = ok && p.LoadConfig(&s.config)
-	ok = ok && p.LoadAlerts(&s.alerts)
-	ok = ok && p.LoadAliases(&s.aliases)
-	ok = ok && p.LoadReviews(&s.localReviews)
-	return ok
-}
