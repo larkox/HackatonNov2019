@@ -30,7 +30,7 @@ With the current version you can:
   - List these alerts (Usage: trigger list alert newReviews)
   - Remove these alerts (Usage: trigger remove alert newReviews alertName)
 
-The application on background is fetching periodically the latest reviews. This is used as cache, and also on later versions it will be used for alerts.
+The application on background is fetching periodically the latest reviews. This is used as cache and for alerts.
 
 ## TODO List:
 
