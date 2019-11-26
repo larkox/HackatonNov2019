@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"google.golang.org/api/androidpublisher/v3"
 )
@@ -34,7 +33,7 @@ type AlertsContainer struct {
 
 // ServerConfig contains all the configuration values for the server
 type ServerConfig struct {
-	GetListTime      time.Duration
+	GetListTime      int
 	MaxReviewsServed int
 	SaveConfig       bool
 	SavePackages     bool

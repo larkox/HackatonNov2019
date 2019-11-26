@@ -42,7 +42,7 @@ func (s *server) getAllReviews() {
 	for {
 		//s.testAlert(&mockReview)
 		listSyncChannel := make(chan reviewsGetResponse)
-		time.Sleep(s.config.GetListTime)
+		time.Sleep(time.Duration(s.config.GetListTime) * time.Second)
 		for _, packageName := range s.packageList {
 			go s.getReviews(packageName, listSyncChannel)
 		}

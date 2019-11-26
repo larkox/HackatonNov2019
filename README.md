@@ -29,6 +29,7 @@ With the current version you can:
 - Configure an alert on a incoming webhook to tell you when there are new reivews (Usage: trigger add alert newReviews name webhook packageId_or_alias frequency_in_seconds)
   - List these alerts (Usage: trigger list alert newReviews)
   - Remove these alerts (Usage: trigger remove alert newReviews alertName)
+- Change server configuration (Usage: trigger set config configField configValue)
 
 The application on background is fetching periodically the latest reviews. This is used as cache and for alerts.
 
@@ -41,7 +42,6 @@ The application on background is fetching periodically the latest reviews. This 
 - Answer reviews from mattermost
 - Improve style on messages sent to mattermost
 - Search reviews
-- Change configuration from mattermost
 
 ## Acknowledgments
 This project was started as a project for Mattermost Hackaton 2019.

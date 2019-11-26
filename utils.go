@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"github.com/mattermost/mattermost-server/model"
@@ -72,4 +73,10 @@ func min(a, b int) int {
 		return b
 	}
 	return a
+}
+
+func isField(fieldName string, s interface{}) bool {
+	valueS := reflect.ValueOf(s)
+	field := valueS.FieldByName(fieldName)
+	return field.IsValid()
 }

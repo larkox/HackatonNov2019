@@ -78,15 +78,15 @@ func (s *server) routeListAlerts(w http.ResponseWriter, r *http.Request, args []
 }
 
 func (s *server) routeSet(w http.ResponseWriter, r *http.Request, args []string) {
-	availableSets := "Available things to set are:\nalias"
+	availableSets := "Available things to set are:\nconfig"
 	if len(args) < 3 {
 		message := fmt.Sprintf("Command \"%s %s\" need something to set. %s", args[0], args[1], availableSets)
 		printRouteError(w, message)
 		return
 	}
 	switch args[2] {
-	case "alias":
-		s.setAlias(w, r, args)
+	case "config":
+		s.setConfig(w, r, args)
 	default:
 		message := fmt.Sprintf("Nothing named \"%s\" can be set. %s", args[2], availableSets)
 		printRouteError(w, message)
@@ -94,7 +94,7 @@ func (s *server) routeSet(w http.ResponseWriter, r *http.Request, args []string)
 }
 
 func (s *server) routeAdd(w http.ResponseWriter, r *http.Request, args []string) {
-	availableAdds := "Available things to add are:\napp\nalert"
+	availableAdds := "Available things to add are:\napp\nalert\nalias"
 	if len(args) < 3 {
 		message := fmt.Sprintf("Command \"%s %s\" need something to add. %s", args[0], args[1], availableAdds)
 		printRouteError(w, message)
@@ -105,6 +105,8 @@ func (s *server) routeAdd(w http.ResponseWriter, r *http.Request, args []string)
 		s.addApp(w, r, args)
 	case "alert":
 		s.routeAddAlert(w, r, args)
+	case "alias":
+		s.addAlias(w, r, args)
 	default:
 		message := fmt.Sprintf("Nothing named \"%s\" can be added. %s", args[2], availableAdds)
 		printRouteError(w, message)

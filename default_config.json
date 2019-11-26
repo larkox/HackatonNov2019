@@ -1,5 +1,5 @@
 {
-    "GetListTime": 30000000000,
+    "GetListTime": 30,
     "MaxReviewsServed": 10,
     "SaveConfig": true,
     "SavePackages": true,

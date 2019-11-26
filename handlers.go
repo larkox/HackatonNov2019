@@ -123,7 +123,7 @@ func (s *server) addApp(w http.ResponseWriter, r *http.Request, args []string) {
 	text += fmt.Sprintf("Package %s added to the system.", packageName)
 }
 
-func (s *server) setAlias(w http.ResponseWriter, r *http.Request, args []string) {
+func (s *server) addAlias(w http.ResponseWriter, r *http.Request, args []string) {
 	var text string
 	response := model.OutgoingWebhookResponse{
 		Text: &text,
@@ -151,7 +151,102 @@ func (s *server) setAlias(w http.ResponseWriter, r *http.Request, args []string)
 
 	s.aliases[aliasName] = packageName
 	s.SaveAliases()
-	text += fmt.Sprintf("Alias %s set for app %s.", aliasName, packageName)
+	text += fmt.Sprintf("Alias %s added for app %s.", aliasName, packageName)
+}
+
+func (s *server) setConfig(w http.ResponseWriter, r *http.Request, args []string) {
+	configAvailable := "Config fields available are:\nGetListTime\nMaxReviewsServed\nSaveConfig\nSavePackages\nSaveAliases\nSaveReviews\nSaveAlerts"
+	var text string
+	response := model.OutgoingWebhookResponse{
+		Text: &text,
+	}
+	encoder := json.NewEncoder(w)
+	defer encoder.Encode(response)
+
+	if len(args) != 5 {
+		text += fmt.Sprintf("Wrong use: %s %s %s configField configValue", args[0], args[1], args[2])
+		return
+	}
+
+	if !isField(args[3], s.config) {
+		text += fmt.Sprintf("%s is not a config field. %s", args[3], configAvailable)
+		return
+	}
+
+	errorCannotConvertFormat := "%s cannot be converted to a number. Error: %s"
+	errorPositiveFormat := "%s is 0 or below. Please, use a positive number."
+	configUpdatedFormat := "Config field %s updated to %s."
+	errorBooleanFormat := "%s is not valid boolean. Use true or false."
+	switch args[3] {
+	case "GetListTime":
+		i, err := strconv.Atoi(args[4])
+		if err != nil {
+			text += fmt.Sprintf(errorCannotConvertFormat, args[4], err.Error())
+			return
+		}
+		if i <= 0 {
+			text += fmt.Sprintf(errorPositiveFormat, args[4])
+			return
+		}
+		s.config.GetListTime = i
+		text += fmt.Sprintf(configUpdatedFormat, args[3], args[4])
+	case "MaxReviewsServed":
+		i, err := strconv.Atoi(args[4])
+		if err != nil {
+			text += fmt.Sprintf(errorCannotConvertFormat, args[4], err.Error())
+			return
+		}
+		if i <= 0 {
+			text += fmt.Sprintf(errorPositiveFormat, args[4])
+			return
+		}
+		s.config.MaxReviewsServed = i
+		text += fmt.Sprintf(configUpdatedFormat, args[3], args[4])
+	case "SaveConfig":
+		value := args[4] == "true"
+		if !value && args[4] != "false" {
+			text += fmt.Sprintf(errorBooleanFormat, args[4])
+			return
+		}
+		s.config.SaveConfig = value
+		text += fmt.Sprintf(configUpdatedFormat, args[3], args[4])
+	case "SavePackages":
+		value := args[4] == "true"
+		if !value && args[4] != "false" {
+			text += fmt.Sprintf(errorBooleanFormat, args[4])
+			return
+		}
+		s.config.SavePackages = value
+		text += fmt.Sprintf(configUpdatedFormat, args[3], args[4])
+	case "SaveAliases":
+		value := args[4] == "true"
+		if !value && args[4] != "false" {
+			text += fmt.Sprintf(errorBooleanFormat, args[4])
+			return
+		}
+		s.config.SaveAliases = value
+		text += fmt.Sprintf(configUpdatedFormat, args[3], args[4])
+	case "SaveReviews":
+		value := args[4] == "true"
+		if !value && args[4] != "false" {
+			text += fmt.Sprintf(errorBooleanFormat, args[4])
+			return
+		}
+		s.config.SaveReviews = value
+		text += fmt.Sprintf(configUpdatedFormat, args[3], args[4])
+	case "SaveAlerts":
+		value := args[4] == "true"
+		if !value && args[4] != "false" {
+			text += fmt.Sprintf(errorBooleanFormat, args[4])
+			return
+		}
+		s.config.SaveAlerts = value
+		text += fmt.Sprintf(configUpdatedFormat, args[3], args[4])
+	default:
+		text += fmt.Sprintf("You cannot set %s from Mattermost.", args[3])
+		return
+	}
+	s.SaveConfig()
 }
 
 func (s *server) serveAppList(w http.ResponseWriter, r *http.Request, args []string) {

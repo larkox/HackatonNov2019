@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	"google.golang.org/api/androidpublisher/v3"
 )
 
@@ -36,7 +34,7 @@ func (s *server) LoadConfig() {
 func (s *server) LoadDefaultConfig() {
 	if !s.persistency.LoadDefaultConfig(&s.config) {
 		s.config = ServerConfig{
-			GetListTime:      30 * time.Second,
+			GetListTime:      30,
 			MaxReviewsServed: 10,
 		}
 	}
