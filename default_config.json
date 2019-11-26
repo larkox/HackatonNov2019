@@ -1,5 +1,6 @@
 {
     "GetListTime": 30,
+    "AlertWatcherTime": 30,
     "MaxReviewsServed": 10,
     "SaveConfig": true,
     "SavePackages": true,

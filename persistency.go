@@ -36,6 +36,7 @@ func (s *server) LoadDefaultConfig() {
 		s.config = ServerConfig{
 			GetListTime:      30,
 			MaxReviewsServed: 10,
+			AlertWatcherTime: 30,
 		}
 	}
 }

@@ -16,7 +16,38 @@ type NewReviewsAlert = struct {
 	Webhook     string
 	PackageName string
 	Frequency   int64
-	LastAlerted time.Time
+	count       int
+	lastAlerted time.Time
+}
+
+type NewUpdatesAlert = struct {
+	Webhook        string
+	PackageName    string
+	Frequency      int64
+	updatedReviews []*androidpublisher.Review
+	lastAlerted    time.Time
+}
+
+func (s *server) watchAlerts() {
+	for {
+		//s.testAlert(&mockReview)
+		time.Sleep(time.Duration(s.config.AlertWatcherTime) * time.Second)
+		s.alertNewReviews()
+		s.alertNewUpdates()
+	}
+}
+
+func (s *server) updateAlerts(packageName string, updatedReviews []*androidpublisher.Review, newReviews []*androidpublisher.Review) {
+	for _, v := range s.alerts.NewReviewsAlerts {
+		if v.PackageName == packageName {
+			v.count += len(newReviews)
+		}
+	}
+	for _, v := range s.alerts.NewUpdatesAlerts {
+		if v.PackageName == packageName {
+			v.updatedReviews = append(updatedReviews, v.updatedReviews...)
+		}
+	}
 }
 
 func (s *server) testAlert(review *androidpublisher.Review) {
@@ -42,44 +73,86 @@ func (s *server) testAlert(review *androidpublisher.Review) {
 	}
 }
 
-func (s *server) alertNewReviews(packageName string) {
-	alertSync := make(chan bool)
-	waitFor := 0
-	for _, v := range s.alerts.NewReviewsAlerts {
-		if v.PackageName == packageName {
-			go s.sendReviewsAlert(v, alertSync)
-			waitFor++
-		}
+func (s *server) alertNewUpdates() {
+	for _, v := range s.alerts.NewUpdatesAlerts {
+		go s.sendUpdatedAlert(&v)
 	}
-	for i := 0; i < waitFor; i++ {
-		_ = <-alertSync
-	}
-	s.control.reviewsMutex.Lock()
-	defer s.control.reviewsMutex.Unlock()
-
-	s.newReviewsCounts[packageName] = 0
 }
 
-func (s *server) sendReviewsAlert(alert NewReviewsAlert, alertSync chan bool) {
-	if alert.LastAlerted.Unix()+alert.Frequency > time.Now().Unix() {
+func (s *server) sendUpdatedAlert(alert *NewUpdatesAlert) {
+	if alert.lastAlerted.Unix()+alert.Frequency > time.Now().Unix() {
 		return
 	}
 
-	var text string
+	if len(alert.updatedReviews) == 0 {
+		return
+	}
+
+	text := fmt.Sprintf("Some reviews has been updated:\n")
 
 	s.control.reviewsMutex.Lock()
 	defer func() {
+		alert.updatedReviews = []*androidpublisher.Review{}
 		s.control.reviewsMutex.Unlock()
-		alertSync <- true
 	}()
 
-	showing := min(s.newReviewsCounts[alert.PackageName], s.config.MaxReviewsServed)
+	showing := min(len(alert.updatedReviews), s.config.MaxReviewsServed)
+
+	for _, review := range alert.updatedReviews[:showing] {
+		text += formatReview(review)
+	}
+	if showing > s.config.MaxReviewsServed {
+		text += fmt.Sprintf("and %d more not shown.", len(alert.updatedReviews)-showing)
+	}
+
+	request := model.IncomingWebhookRequest{
+		Text: text,
+	}
+
+	b, err := json.Marshal(request)
+
+	if err != nil {
+		fmt.Print(err.Error())
+		return
+	}
+
+	_, err = http.Post(alert.Webhook, "application/json", strings.NewReader(string(b)))
+	if err != nil {
+		fmt.Print(err.Error())
+		return
+	}
+}
+
+func (s *server) alertNewReviews() {
+	for _, v := range s.alerts.NewReviewsAlerts {
+		go s.sendReviewsAlert(&v)
+	}
+}
+
+func (s *server) sendReviewsAlert(alert *NewReviewsAlert) {
+	if alert.lastAlerted.Unix()+alert.Frequency > time.Now().Unix() {
+		return
+	}
+
+	if alert.count == 0 {
+		return
+	}
+
+	text := "You have new reviews:\n"
+
+	s.control.reviewsMutex.Lock()
+	defer func() {
+		alert.count = 0
+		s.control.reviewsMutex.Unlock()
+	}()
+
+	showing := min(alert.count, s.config.MaxReviewsServed)
 
 	for _, review := range s.localReviews[alert.PackageName][:showing] {
 		text += formatReview(review)
 	}
 	if showing > s.config.MaxReviewsServed {
-		text += fmt.Sprintf("and %d more not shown.", s.newReviewsCounts[alert.PackageName]-showing)
+		text += fmt.Sprintf("and %d more not shown.", alert.count-showing)
 	}
 
 	request := model.IncomingWebhookRequest{

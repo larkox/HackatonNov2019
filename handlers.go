@@ -85,7 +85,7 @@ func (s *server) addNewReviewsAlert(w http.ResponseWriter, r *http.Request, args
 		Webhook:     webhook,
 		PackageName: packageName,
 		Frequency:   frequency,
-		LastAlerted: time.Now(),
+		lastAlerted: time.Now(),
 	}
 	s.SaveAlerts()
 

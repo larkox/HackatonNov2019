@@ -40,7 +40,6 @@ var mockReview = androidpublisher.Review{
 
 func (s *server) getAllReviews() {
 	for {
-		//s.testAlert(&mockReview)
 		listSyncChannel := make(chan reviewsGetResponse)
 		time.Sleep(time.Duration(s.config.GetListTime) * time.Second)
 		for _, packageName := range s.packageList {
@@ -54,20 +53,12 @@ func (s *server) getAllReviews() {
 			}
 			s.control.reviewsMutex.Lock()
 			defer s.control.reviewsMutex.Unlock()
-			count := mergeReviewLists(s.localReviews[getResponse.packageName], getResponse.list, getResponse.packageName)
-
-			if count > 0 {
-				s.newReviewsCounts[getResponse.packageName] += count
-				shouldSave = true
-			}
+			count, updates, new := mergeReviewLists(s.localReviews[getResponse.packageName], getResponse.list, getResponse.packageName)
+			s.updateAlerts(getResponse.packageName, updates, new)
+			shouldSave = shouldSave || count > 0
 		}
 		if shouldSave {
 			s.SaveReviews()
-		}
-		for k, v := range s.newReviewsCounts {
-			if v > 0 {
-				go s.alertNewReviews(k)
-			}
 		}
 	}
 }
@@ -108,7 +99,7 @@ func formatReview(review *androidpublisher.Review) string {
 		review.ReviewId)
 }
 
-func mergeReviewLists(localList []*androidpublisher.Review, remoteList []*androidpublisher.Review, packageName string) int {
+func mergeReviewLists(localList []*androidpublisher.Review, remoteList []*androidpublisher.Review, packageName string) (int, []*androidpublisher.Review, []*androidpublisher.Review) {
 	// Remove already cached elements
 	for i := range remoteList {
 		if remoteList[i].Comments[0].UserComment.LastModified.Seconds <= localList[0].Comments[0].UserComment.LastModified.Seconds {
@@ -117,20 +108,23 @@ func mergeReviewLists(localList []*androidpublisher.Review, remoteList []*androi
 		}
 	}
 
+	updatedReviews := []*androidpublisher.Review{}
 	// Remove duplicates
 	for _, listItem := range remoteList {
 		for i, cacheItem := range localList {
 			if listItem.ReviewId == cacheItem.ReviewId {
+				updatedReviews = append(updatedReviews, listItem)
 				localList = removeElement(localList, i)
 				break
 			}
 		}
 	}
 
-	newReviews := len(remoteList)
+	var newReviews []*androidpublisher.Review
+	copy(newReviews, remoteList)
 
 	// Join lists
 	localList = append(remoteList, localList...)
 
-	return newReviews
+	return 0, updatedReviews, newReviews
 }
