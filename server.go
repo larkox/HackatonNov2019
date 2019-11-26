@@ -27,8 +27,8 @@ type ControlUtils struct {
 
 // AlertsContainer contains the maps to the different kinds of alerts
 type AlertsContainer struct {
-	NewReviewsAlerts map[string]NewReviewsAlert
-	NewUpdatesAlerts map[string]NewUpdatesAlert
+	NewReviewsAlerts map[string]*NewReviewsAlert
+	NewUpdatesAlerts map[string]*NewUpdatesAlert
 }
 
 // ServerConfig contains all the configuration values for the server
@@ -41,6 +41,7 @@ type ServerConfig struct {
 	SaveAliases      bool
 	SaveReviews      bool
 	SaveAlerts       bool
+	useMock          bool
 }
 
 func newServer() *server {
@@ -51,10 +52,11 @@ func newServer() *server {
 		persistency:  &plainJSONPersistency{},
 		config:       ServerConfig{},
 		alerts: AlertsContainer{
-			NewReviewsAlerts: make(map[string]NewReviewsAlert),
-			NewUpdatesAlerts: make(map[string]NewUpdatesAlert),
+			NewReviewsAlerts: make(map[string]*NewReviewsAlert),
+			NewUpdatesAlerts: make(map[string]*NewUpdatesAlert),
 		},
 	}
+	//newServer.config.useMock = true
 	if err := newServer.initService(); err != nil {
 		fmt.Println("Error initializing the service:", err.Error())
 		return nil

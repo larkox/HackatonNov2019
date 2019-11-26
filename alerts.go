@@ -75,7 +75,7 @@ func (s *server) testAlert(review *androidpublisher.Review) {
 
 func (s *server) alertNewUpdates() {
 	for _, v := range s.alerts.NewUpdatesAlerts {
-		go s.sendUpdatedAlert(&v)
+		go s.sendUpdatedAlert(v)
 	}
 }
 
@@ -88,7 +88,7 @@ func (s *server) sendUpdatedAlert(alert *NewUpdatesAlert) {
 		return
 	}
 
-	text := fmt.Sprintf("Some reviews has been updated:\n")
+	text := fmt.Sprintf("## Some reviews has been updated:\n")
 
 	s.control.reviewsMutex.Lock()
 	defer func() {
@@ -102,7 +102,7 @@ func (s *server) sendUpdatedAlert(alert *NewUpdatesAlert) {
 		text += formatReview(review)
 	}
 	if showing > s.config.MaxReviewsServed {
-		text += fmt.Sprintf("and %d more not shown.", len(alert.updatedReviews)-showing)
+		text += fmt.Sprintf("and **%d** more not shown.", len(alert.updatedReviews)-showing)
 	}
 
 	request := model.IncomingWebhookRequest{
@@ -125,7 +125,7 @@ func (s *server) sendUpdatedAlert(alert *NewUpdatesAlert) {
 
 func (s *server) alertNewReviews() {
 	for _, v := range s.alerts.NewReviewsAlerts {
-		go s.sendReviewsAlert(&v)
+		go s.sendReviewsAlert(v)
 	}
 }
 
@@ -138,7 +138,7 @@ func (s *server) sendReviewsAlert(alert *NewReviewsAlert) {
 		return
 	}
 
-	text := "You have new reviews:\n"
+	text := "## You have new reviews:\n"
 
 	s.control.reviewsMutex.Lock()
 	defer func() {
@@ -152,7 +152,7 @@ func (s *server) sendReviewsAlert(alert *NewReviewsAlert) {
 		text += formatReview(review)
 	}
 	if showing > s.config.MaxReviewsServed {
-		text += fmt.Sprintf("and %d more not shown.", alert.count-showing)
+		text += fmt.Sprintf("and **%d** more not shown.", alert.count-showing)
 	}
 
 	request := model.IncomingWebhookRequest{

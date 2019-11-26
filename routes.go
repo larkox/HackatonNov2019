@@ -19,9 +19,9 @@ func (s *server) routeRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	availableCommands := "Available commands are:\nlist\nset\nadd\nremove"
+	availableCommands := "Available commands are:\n* `list`\n* `set`\n* `add`\n* `remove`"
 	if len(args) < 2 {
-		message := fmt.Sprintf("Program \"%s\" needs a command. %s", args[0], availableCommands)
+		message := fmt.Sprintf(":x:Program `\"%s\"` needs a command. %s", args[0], availableCommands)
 		printRouteError(w, message)
 		return
 	}
@@ -36,15 +36,15 @@ func (s *server) routeRoot(w http.ResponseWriter, r *http.Request) {
 	case "remove":
 		s.routeRemove(w, r, args)
 	default:
-		message := fmt.Sprintf("Command \"%s\" not found. %s", args[1], availableCommands)
+		message := fmt.Sprintf(":x:Command `\"%s\"` not found. %s", args[1], availableCommands)
 		printRouteError(w, message)
 	}
 }
 
 func (s *server) routeList(w http.ResponseWriter, r *http.Request, args []string) {
-	availableLists := "Available lists are:\napps\nalerts\nreviews\nremove"
+	availableLists := "Available lists are:\n* `apps`\n* `alerts`\n* `reviews`"
 	if len(args) < 3 {
-		message := fmt.Sprintf("Command \"%s %s\" need something to list. %s", args[0], args[1], availableLists)
+		message := fmt.Sprintf(":x:Command `\"%s %s\"` need something to list. %s", args[0], args[1], availableLists)
 		printRouteError(w, message)
 		return
 	}
@@ -56,15 +56,15 @@ func (s *server) routeList(w http.ResponseWriter, r *http.Request, args []string
 	case "reviews":
 		s.serveList(w, r, args)
 	default:
-		message := fmt.Sprintf("Nothing called \"%s\" not found. %s", args[2], availableLists)
+		message := fmt.Sprintf(":x:Nothing called `\"%s\"` can be listed. %s", args[2], availableLists)
 		printRouteError(w, message)
 	}
 }
 
 func (s *server) routeListAlerts(w http.ResponseWriter, r *http.Request, args []string) {
-	alertTypes := "Available types are:\nnewReviews"
+	alertTypes := "Available types are:\n* `newReviews`"
 	if len(args) < 4 {
-		message := fmt.Sprintf("Command \"%s %s %s\" needs the alert type. %s", args[0], args[1], args[2], alertTypes)
+		message := fmt.Sprintf(":x:Command `\"%s %s %s\"` needs the alert type. %s", args[0], args[1], args[2], alertTypes)
 		printRouteError(w, message)
 		return
 	}
@@ -72,15 +72,15 @@ func (s *server) routeListAlerts(w http.ResponseWriter, r *http.Request, args []
 	case "newReviews":
 		s.serveListNewReviewsAlerts(w, r, args)
 	default:
-		message := fmt.Sprintf("Alert type \"%s\" not found. %s", args[3], alertTypes)
+		message := fmt.Sprintf(":x:Alert type `\"%s\"` not found. %s", args[3], alertTypes)
 		printRouteError(w, message)
 	}
 }
 
 func (s *server) routeSet(w http.ResponseWriter, r *http.Request, args []string) {
-	availableSets := "Available things to set are:\nconfig"
+	availableSets := "Available things to set are:\n* `config`"
 	if len(args) < 3 {
-		message := fmt.Sprintf("Command \"%s %s\" need something to set. %s", args[0], args[1], availableSets)
+		message := fmt.Sprintf(":x:Command `\"%s %s\"` need something to set. %s", args[0], args[1], availableSets)
 		printRouteError(w, message)
 		return
 	}
@@ -88,15 +88,15 @@ func (s *server) routeSet(w http.ResponseWriter, r *http.Request, args []string)
 	case "config":
 		s.setConfig(w, r, args)
 	default:
-		message := fmt.Sprintf("Nothing named \"%s\" can be set. %s", args[2], availableSets)
+		message := fmt.Sprintf(":x:Nothing named `\"%s\"` can be set. %s", args[2], availableSets)
 		printRouteError(w, message)
 	}
 }
 
 func (s *server) routeAdd(w http.ResponseWriter, r *http.Request, args []string) {
-	availableAdds := "Available things to add are:\napp\nalert\nalias"
+	availableAdds := "Available things to add are:\n* `app`\n* `alert`\n* `alias`"
 	if len(args) < 3 {
-		message := fmt.Sprintf("Command \"%s %s\" need something to add. %s", args[0], args[1], availableAdds)
+		message := fmt.Sprintf(":x:Command `\"%s %s\"` need something to add. %s", args[0], args[1], availableAdds)
 		printRouteError(w, message)
 		return
 	}
@@ -108,15 +108,15 @@ func (s *server) routeAdd(w http.ResponseWriter, r *http.Request, args []string)
 	case "alias":
 		s.addAlias(w, r, args)
 	default:
-		message := fmt.Sprintf("Nothing named \"%s\" can be added. %s", args[2], availableAdds)
+		message := fmt.Sprintf(":x:Nothing named `\"%s\"` can be added. %s", args[2], availableAdds)
 		printRouteError(w, message)
 	}
 }
 
 func (s *server) routeAddAlert(w http.ResponseWriter, r *http.Request, args []string) {
-	alertTypes := "Available types are:\nnewReviews"
+	alertTypes := "Available types are:\n* `newReviews`"
 	if len(args) < 4 {
-		message := fmt.Sprintf("Command \"%s %s %s\" needs the alert type. %s", args[0], args[1], args[2], alertTypes)
+		message := fmt.Sprintf(":x:Command `\"%s %s %s\"` needs the alert type. %s", args[0], args[1], args[2], alertTypes)
 		printRouteError(w, message)
 		return
 	}
@@ -124,15 +124,15 @@ func (s *server) routeAddAlert(w http.ResponseWriter, r *http.Request, args []st
 	case "newReviews":
 		s.addNewReviewsAlert(w, r, args)
 	default:
-		message := fmt.Sprintf("Alert type \"%s\" not found. %s", args[3], alertTypes)
+		message := fmt.Sprintf(":x:Alert type `\"%s\"` not found. %s", args[3], alertTypes)
 		printRouteError(w, message)
 	}
 }
 
 func (s *server) routeRemove(w http.ResponseWriter, r *http.Request, args []string) {
-	availableRemoves := "Available things to remove are:\nalert"
+	availableRemoves := "Available things to remove are:\n* `alert`"
 	if len(args) < 3 {
-		message := fmt.Sprintf("Command \"%s %s\" needs the alert type. %s", args[0], args[1], availableRemoves)
+		message := fmt.Sprintf(":x:Command `\"%s %s\"` needs the alert type. %s", args[0], args[1], availableRemoves)
 		printRouteError(w, message)
 		return
 	}
@@ -140,15 +140,15 @@ func (s *server) routeRemove(w http.ResponseWriter, r *http.Request, args []stri
 	case "alert":
 		s.routeRemoveAlert(w, r, args)
 	default:
-		message := fmt.Sprintf("Nothing named \"%s\" can be removed. %s", args[2], availableRemoves)
+		message := fmt.Sprintf(":x:Nothing named `\"%s\"` can be removed. %s", args[2], availableRemoves)
 		printRouteError(w, message)
 	}
 }
 
 func (s *server) routeRemoveAlert(w http.ResponseWriter, r *http.Request, args []string) {
-	alertTypes := "Available types are:\nnewReviews"
+	alertTypes := "Available types are:\n* `newReviews`"
 	if len(args) < 4 {
-		message := fmt.Sprintf("Command \"%s %s %s\" needs the alert type. %s", args[0], args[1], args[2], alertTypes)
+		message := fmt.Sprintf(":x:Command `\"%s %s %s\"` needs the alert type. %s", args[0], args[1], args[2], alertTypes)
 		printRouteError(w, message)
 		return
 	}
@@ -156,7 +156,7 @@ func (s *server) routeRemoveAlert(w http.ResponseWriter, r *http.Request, args [
 	case "newReviews":
 		s.removeNewReviewsAlert(w, r, args)
 	default:
-		message := fmt.Sprintf("Alert type \"%s\" not found. %s", args[3], alertTypes)
+		message := fmt.Sprintf(":x:Alert type `\"%s\"` not found. %s", args[3], alertTypes)
 		printRouteError(w, message)
 	}
 }
