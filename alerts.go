@@ -121,6 +121,7 @@ func (s *server) sendUpdatedAlert(alert *NewUpdatesAlert) {
 		fmt.Print(err.Error())
 		return
 	}
+	alert.lastAlerted = time.Now()
 }
 
 func (s *server) alertNewReviews() {
@@ -171,4 +172,5 @@ func (s *server) sendReviewsAlert(alert *NewReviewsAlert) {
 		fmt.Print(err.Error())
 		return
 	}
+	alert.lastAlerted = time.Now()
 }
