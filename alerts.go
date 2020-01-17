@@ -12,20 +12,24 @@ import (
 	"google.golang.org/api/androidpublisher/v3"
 )
 
-type NewReviewsAlert = struct {
+// Alert stores the important information about what to alert and how often.
+type Alert = struct {
 	Webhook     string
 	PackageName string
 	Frequency   int64
-	count       int
 	lastAlerted time.Time
 }
 
+// NewReviewsAlert declares an alert for new reviews on the system
+type NewReviewsAlert = struct {
+	Alert
+	count int
+}
+
+// NewUpdatesAlert declares an alert for updates in the user reviews
 type NewUpdatesAlert = struct {
-	Webhook        string
-	PackageName    string
-	Frequency      int64
+	Alert
 	updatedReviews []*androidpublisher.Review
-	lastAlerted    time.Time
 }
 
 func (s *server) watchAlerts() {
