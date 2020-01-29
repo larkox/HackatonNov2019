@@ -11,6 +11,7 @@ import (
 
 type reviewsGetResponse = struct {
 	packageName string
+	userID      string
 	list        []*androidpublisher.Review
 }
 
@@ -69,55 +70,62 @@ func newMockReview() androidpublisher.Review {
 	}
 }
 
-func (s *server) getAllReviews() {
+func (p *Plugin) getAllReviews() {
 	for {
 		listSyncChannel := make(chan reviewsGetResponse)
-		for _, packageName := range s.packageList {
-			go s.getReviews(packageName, listSyncChannel)
+		for _, packageInfo := range p.packageList {
+			go p.getReviews(packageInfo.Name, packageInfo.UserID, listSyncChannel)
 		}
 		shouldSave := false
-		for range s.packageList {
+		for range p.packageList {
 			getResponse := <-listSyncChannel
 			if getResponse.list == nil || len(getResponse.list) == 0 {
-				if s.config.useMock {
-					mockReview := newMockReview()
-					getResponse.list = []*androidpublisher.Review{
-						&mockReview,
-					}
-				} else {
-					continue
-				}
+				// mockReview := newMockReview()
+				// getResponse.list = []*androidpublisher.Review{
+				// 	&mockReview,
+				// }
+				continue
 			}
 
-			s.control.reviewsMutex.Lock()
-			count, local, updates, new := mergeReviewLists(s.localReviews[getResponse.packageName], getResponse.list, getResponse.packageName)
-			s.localReviews[getResponse.packageName] = local
-			s.updateAlerts(getResponse.packageName, updates, new)
-			s.control.reviewsMutex.Unlock()
+			p.control.reviewsMutex.Lock()
+			if _, ok := p.localReviews[getResponse.userID]; !ok {
+				p.localReviews[getResponse.userID] = make(map[string][]*androidpublisher.Review)
+			}
+			if _, ok := p.localReviews[getResponse.userID][getResponse.packageName]; !ok {
+				p.localReviews[getResponse.userID][getResponse.packageName] = []*androidpublisher.Review{}
+			}
+			count, local, updates, new := mergeReviewLists(p.localReviews[getResponse.userID][getResponse.packageName], getResponse.list, getResponse.packageName)
+			p.localReviews[getResponse.userID][getResponse.packageName] = local
+			p.updateAlerts(getResponse.packageName, getResponse.userID, updates, new)
+			p.control.reviewsMutex.Unlock()
 
 			shouldSave = shouldSave || count > 0
 		}
 
 		if shouldSave {
-			s.control.reviewsMutex.Lock()
-			s.SaveReviews()
-			s.control.reviewsMutex.Unlock()
+			p.control.reviewsMutex.Lock()
+			p.SaveReviews()
+			p.control.reviewsMutex.Unlock()
 		}
-		time.Sleep(time.Duration(s.config.GetListTime) * time.Second)
+		config := p.getConfiguration()
+		time.Sleep(time.Duration(config.GetListTime) * time.Second)
 	}
 }
 
-func (s *server) getReviews(packageName string, listSyncChannel chan reviewsGetResponse) {
-	list, err := s.service.Reviews.List(packageName).Do()
+func (p *Plugin) getReviews(packageName string, userID string, listSyncChannel chan reviewsGetResponse) {
+	service := p.getService(userID)
+	list, err := service.List(packageName).Do()
 	if err != nil {
 		fmt.Print(err.Error())
 		listSyncChannel <- reviewsGetResponse{
 			packageName: packageName,
+			userID:      userID,
 			list:        nil,
 		}
 	} else {
 		listSyncChannel <- reviewsGetResponse{
 			packageName: packageName,
+			userID:      userID,
 			list:        list.Reviews,
 		}
 	}

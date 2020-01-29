@@ -26,50 +26,7 @@ func (p *plainJSONPersistency) Init() {
 	p.alertsFilename = "data/alerts.json"
 }
 
-func (p *plainJSONPersistency) SaveConfig(config ServerConfig) {
-	data, err := json.MarshalIndent(config, "", "    ")
-	if err != nil {
-		fmt.Println("Error saving config: " + err.Error())
-		return
-	}
-
-	err = ioutil.WriteFile(p.configFilename, data, 0644)
-	if err != nil {
-		fmt.Println("Error saving config: " + err.Error())
-	}
-}
-
-func (p *plainJSONPersistency) LoadConfig(config *ServerConfig) bool {
-	data, err := ioutil.ReadFile(p.configFilename)
-	if err != nil {
-		fmt.Println("Error loading config: " + err.Error())
-		return false
-	}
-
-	err = json.Unmarshal(data, config)
-	if err != nil {
-		fmt.Println("Error loading config: " + err.Error())
-		return false
-	}
-	return true
-}
-
-func (p *plainJSONPersistency) LoadDefaultConfig(config *ServerConfig) bool {
-	data, err := ioutil.ReadFile(p.defaultConfigFilename)
-	if err != nil {
-		fmt.Println("Error loading default config: " + err.Error())
-		return false
-	}
-
-	err = json.Unmarshal(data, config)
-	if err != nil {
-		fmt.Println("Error loading default config: " + err.Error())
-		return false
-	}
-	return true
-}
-
-func (p *plainJSONPersistency) SavePackages(packageList []string) {
+func (p *plainJSONPersistency) SavePackages(packageList []PackageInfo) {
 	data, err := json.MarshalIndent(packageList, "", "    ")
 	if err != nil {
 		fmt.Println("Error saving packages: " + err.Error())
@@ -82,7 +39,7 @@ func (p *plainJSONPersistency) SavePackages(packageList []string) {
 	}
 }
 
-func (p *plainJSONPersistency) LoadPackages(packageList *[]string) bool {
+func (p *plainJSONPersistency) LoadPackages(packageList *[]PackageInfo) bool {
 	data, err := ioutil.ReadFile(p.packagesFilename)
 	if err != nil {
 		fmt.Println("Error loading packages: " + err.Error())
@@ -97,7 +54,7 @@ func (p *plainJSONPersistency) LoadPackages(packageList *[]string) bool {
 	return true
 }
 
-func (p *plainJSONPersistency) SaveAliases(aliases map[string]string) {
+func (p *plainJSONPersistency) SaveAliases(aliases map[string]map[string]string) {
 	data, err := json.MarshalIndent(aliases, "", "    ")
 	if err != nil {
 		fmt.Println("Error saving aliases: " + err.Error())
@@ -110,7 +67,7 @@ func (p *plainJSONPersistency) SaveAliases(aliases map[string]string) {
 	}
 }
 
-func (p *plainJSONPersistency) LoadAliases(aliases *map[string]string) bool {
+func (p *plainJSONPersistency) LoadAliases(aliases *map[string]map[string]string) bool {
 	data, err := ioutil.ReadFile(p.aliasesFilename)
 	if err != nil {
 		fmt.Println("Error loading aliases: " + err.Error())
@@ -125,7 +82,7 @@ func (p *plainJSONPersistency) LoadAliases(aliases *map[string]string) bool {
 	return true
 }
 
-func (p *plainJSONPersistency) SaveReviews(reviews map[string][]*androidpublisher.Review) {
+func (p *plainJSONPersistency) SaveReviews(reviews map[string]map[string][]*androidpublisher.Review) {
 	data, err := json.MarshalIndent(reviews, "", "    ")
 	if err != nil {
 		fmt.Println("Error saving reviews: " + err.Error())
@@ -138,7 +95,7 @@ func (p *plainJSONPersistency) SaveReviews(reviews map[string][]*androidpublishe
 	}
 }
 
-func (p *plainJSONPersistency) LoadReviews(reviews *map[string][]*androidpublisher.Review) bool {
+func (p *plainJSONPersistency) LoadReviews(reviews *map[string]map[string][]*androidpublisher.Review) bool {
 	data, err := ioutil.ReadFile(p.reviewsFilename)
 	if err != nil {
 		fmt.Println("Error loading reviews: " + err.Error())
