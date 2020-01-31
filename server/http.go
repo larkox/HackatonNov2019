@@ -52,7 +52,11 @@ func (p *Plugin) connectUserToGooglePlay(w http.ResponseWriter, r *http.Request)
 
 func (p *Plugin) getOAuthConfig(userID string) *oauth2.Config {
 	apiConfig := p.API.GetConfig()
-	redirectURL := *apiConfig.ServiceSettings.SiteURL + "plugins/com.mattermost.google-play-reviews/oauth/complete"
+	siteURL := *apiConfig.ServiceSettings.SiteURL
+	if i := len(siteURL); i > 0 && siteURL[i-1] == '/' {
+		siteURL = siteURL[:i-1]
+	}
+	redirectURL := siteURL + "/plugins/com.mattermost.google-play-reviews/oauth/complete"
 
 	pluginConfig := p.getConfiguration()
 	conf := &oauth2.Config{

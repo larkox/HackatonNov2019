@@ -191,9 +191,13 @@ func (p *Plugin) connect(userID string) (*model.CommandResponse, *model.AppError
 		return commandErrorResponse("Encountered an error connecting to Google Play: SiteURL is not set-up.")
 	}
 
+	siteURL := *config.ServiceSettings.SiteURL
+	if i := len(siteURL); i > 0 && siteURL[i-1] == '/' {
+		siteURL = siteURL[:i-1]
+	}
 	userInfo, _ := p.getGooglePlayUserInfo(userID)
 	if userInfo == nil {
-		return commandStatusResponse(fmt.Sprintf("[Click here to link your Google Play account.](%s/plugins/com.mattermost.google-play-reviews/oauth/connect)", *config.ServiceSettings.SiteURL))
+		return commandStatusResponse(fmt.Sprintf("[Click here to link your Google Play account.](%s/plugins/com.mattermost.google-play-reviews/oauth/connect)", siteURL))
 	}
 
 	return commandStatusResponse("Google Play Reviews connected and running.")
